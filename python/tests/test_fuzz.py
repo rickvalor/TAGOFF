@@ -11,7 +11,7 @@ import random
 import string
 from pathlib import Path
 
-from link_scrub.scrubber import TrackerLists, clean_url
+from tagoff.scrubber import TrackerLists, clean_url
 
 ALPHABET = "abcXYZ019 ?&=#%./:[]\0\\'\"<>+"
 GOLDEN_FILE = Path(__file__).resolve().parents[2] / "test_fixtures" / "golden_cases.txt"

@@ -1,4 +1,4 @@
-name: "link-scrub check"
+name: "tagoff check"
 description: "Fail a workflow if any URL in given files/paths contains tracking params or a wrapped link-shim redirector."
 branding:
   icon: "link-2"
@@ -10,7 +10,7 @@ inputs:
     required: false
     default: "."
   python-version:
-    description: "Python version to install link-scrub with."
+    description: "Python version to install tagoff with."
     required: false
     default: "3.12"
 
@@ -34,5 +34,5 @@ runs:
           echo "no files to scan"
           exit 0
         fi
-        link-scrub-precommit $files
+        tagoff-precommit $files
       shell: bash

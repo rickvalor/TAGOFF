@@ -1,4 +1,4 @@
-from link_scrub.scrubber import TrackerLists, clean_url
+from tagoff.scrubber import TrackerLists, clean_url
 
 FIXTURE_PARAMS = "utm_*\nfbclid\ngclid\n"
 FIXTURE_DOMAINS = "clickwrap.example\n*.shim.example\n"

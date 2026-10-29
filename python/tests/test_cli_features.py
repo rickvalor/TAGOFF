@@ -1,12 +1,12 @@
 """Features 1-4: --json, --stats, --check, --list-params/--list-domains,
-exercised through the real CLI entry point (link_scrub.cli.main) so these
+exercised through the real CLI entry point (tagoff.cli.main) so these
 tests match what a user actually runs.
 """
 import json
 
 import pytest
 
-from link_scrub.cli import main
+from tagoff.cli import main
 
 
 def _run(capsys, argv):
@@ -85,7 +85,7 @@ def test_output_file_writes_atomically(capsys, tmp_path):
     assert out == ""  # nothing on stdout when --output is used
     assert output_file.read_text(encoding="utf-8") == "https://example.com/a\n"
     # no leftover temp file from the atomic-write dance
-    leftovers = list(tmp_path.glob(".link_scrub_tmp_*"))
+    leftovers = list(tmp_path.glob(".tagoff_tmp_*"))
     assert leftovers == []
 
 

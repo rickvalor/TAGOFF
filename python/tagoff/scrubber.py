@@ -17,20 +17,20 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 def user_config_dir() -> Path | None:
     """Feature 5: where a user's own overlay files
     (`extra_params.txt`/`extra_domains.txt`, same format as the shipped
-    `data/` lists) live. `LINK_SCRUB_CONFIG_DIR` overrides everything, for
+    `data/` lists) live. `TAGOFF_CONFIG_DIR` overrides everything, for
     tests and for anyone who wants a non-default location; otherwise
-    `%APPDATA%\\link_scrub` on Windows or `~/.config/link_scrub` elsewhere.
+    `%APPDATA%\\tagoff` on Windows or `~/.config/tagoff` elsewhere.
     Returns `None` only if neither the override nor the platform's home
     variable is set -- never raises, never touches the filesystem itself.
     """
-    override = os.environ.get("LINK_SCRUB_CONFIG_DIR")
+    override = os.environ.get("TAGOFF_CONFIG_DIR")
     if override:
         return Path(override)
     if os.name == "nt":
         appdata = os.environ.get("APPDATA")
-        return Path(appdata) / "link_scrub" if appdata else None
+        return Path(appdata) / "tagoff" if appdata else None
     home = os.environ.get("HOME")
-    return Path(home) / ".config" / "link_scrub" if home else None
+    return Path(home) / ".config" / "tagoff" if home else None
 
 
 def read_overlay(dir_: Path) -> tuple[str, str]:
@@ -50,7 +50,7 @@ def _resolve_data_dir() -> Path:
 
     Two cases, tried in order:
     1. Installed wheel: `setup.py`'s build step copies the canonical
-       `data/*.txt` into `link_scrub/data/` at build time, so a real,
+       `data/*.txt` into `tagoff/data/` at build time, so a real,
        non-editable install is self-contained (round 16 fix -- the
        original design only worked for an editable install, since it
        always looked two levels up at the source tree).

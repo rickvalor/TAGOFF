@@ -2,17 +2,17 @@
 # source from any other repo:
 #
 #   repos:
-#     - repo: https://github.com/<owner>/LINK_SCRUB
+#     - repo: https://github.com/<owner>/TAGOFF
 #       rev: <tag or commit>
 #       hooks:
-#         - id: link-scrub-check
+#         - id: tagoff-check
 #
 # `language: python` means pre-commit builds its own isolated venv and
 # installs this package into it via pyproject.toml -- nothing extra to
 # configure on the consuming repo's side.
-- id: link-scrub-check
-  name: link-scrub (no tracking params in links)
+- id: tagoff-check
+  name: tagoff (no tracking params in links)
   description: Fails if any URL in a changed file contains tracking query params or a wrapped link-shim redirector.
-  entry: link-scrub-precommit
+  entry: tagoff-precommit
   language: python
   types: [text]

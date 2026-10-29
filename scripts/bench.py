@@ -14,10 +14,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-RUST_BIN = ROOT / "rust_core" / "target" / "release" / "link_scrub.exe"
+RUST_BIN = ROOT / "rust_core" / "target" / "release" / "tagoff.exe"
 
 sys.path.insert(0, str(ROOT / "python"))
-from link_scrub.scrubber import TrackerLists, clean_url  # noqa: E402
+from tagoff.scrubber import TrackerLists, clean_url  # noqa: E402
 
 
 def make_urls(n: int) -> list[str]:

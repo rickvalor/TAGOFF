@@ -13,6 +13,6 @@ cargo +stable-x86_64-pc-windows-gnu build --manifest-path ../wasm_demo/Cargo.tom
 mkdir -p data
 cp ../data/tracking_params.txt data/
 cp ../data/tracking_domains.txt data/
-cp ../wasm_demo/target/wasm32-unknown-unknown/release/link_scrub_wasm.wasm .
+cp ../wasm_demo/target/wasm32-unknown-unknown/release/tagoff_wasm.wasm .
 
-echo "Staged: web_demo/link_scrub_wasm.wasm, web_demo/data/*.txt"
+echo "Staged: web_demo/tagoff_wasm.wasm, web_demo/data/*.txt"

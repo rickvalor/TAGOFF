@@ -10,14 +10,14 @@ README's "Status" section).
 
 What's missing before any of these can go live, per format:
 
-- **Homebrew** (`homebrew/link-scrub.rb`): needs a tagged GitHub release
+- **Homebrew** (`homebrew/tagoff.rb`): needs a tagged GitHub release
   with a source tarball URL, and that tarball's real `sha256`. Computed
   via `shasum -a 256 <tarball>` once one exists.
-- **Scoop** (`scoop/link-scrub.json`): needs a released Windows binary
+- **Scoop** (`scoop/tagoff.json`): needs a released Windows binary
   (the Rust CLI, cross-compiled for `x86_64-pc-windows-gnu` or `-msvc` in
   CI -- not yet set up; `.github/workflows/ci.yml` only builds+tests,
   doesn't produce a release artifact) and that binary's real `hash`.
-- **winget** (`winget/LINK_SCRUB.yaml`): same binary requirement as
+- **winget** (`winget/TAGOFF.yaml`): same binary requirement as
   Scoop, plus a Microsoft Store/winget-pkgs submission, which is a
   separate PR into `microsoft/winget-pkgs`, not something this repo
   controls alone.

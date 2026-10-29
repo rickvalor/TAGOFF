@@ -1,5 +1,5 @@
-"""CLI entry point: `python -m link_scrub [urls...]` (or the installed
-`link-scrub` console script).
+"""CLI entry point: `python -m tagoff [urls...]` (or the installed
+`tagoff` console script).
 
 Reads stdin (one URL per line) if no URLs are given as arguments. Flag
 surface is kept identical to rust_core's CLI (see main.rs) on purpose, so
@@ -21,7 +21,7 @@ from .scrubber import CleanResult, TrackerLists, clean_url
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="link-scrub",
+        prog="tagoff",
         description="Strip tracking query params from URLs and unwrap known link-shim redirectors.",
     )
     ap.add_argument("urls", nargs="*", help="URLs to clean; reads stdin (one per line) if omitted")
@@ -126,7 +126,7 @@ def _format_result(result: CleanResult, args: argparse.Namespace) -> str:
 
 
 def _atomic_write(path: Path, content: str) -> None:
-    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent) if path.parent != Path("") else ".", prefix=".link_scrub_tmp_")
+    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent) if path.parent != Path("") else ".", prefix=".tagoff_tmp_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(content)
@@ -137,7 +137,7 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 def _print_stats(total: int, total_removed: int, total_unwrapped: int, param_counts: Counter[str]) -> None:
-    print("--- link_scrub stats ---", file=sys.stderr)
+    print("--- tagoff stats ---", file=sys.stderr)
     print(f"URLs processed:        {total}", file=sys.stderr)
     print(f"Tracking params removed: {total_removed}", file=sys.stderr)
     print(f"Redirectors unwrapped: {total_unwrapped}", file=sys.stderr)

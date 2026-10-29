@@ -96,7 +96,7 @@ def _looks_like_json(text: str) -> bool:
 
 
 def _atomic_write(path: Path, content: str) -> None:
-    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), prefix=".link_scrub_tmp_")
+    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), prefix=".tagoff_tmp_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(content)
@@ -108,7 +108,7 @@ def _atomic_write(path: Path, content: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="link-scrub-bookmarks",
+        prog="tagoff-bookmarks",
         description="Clean tracking params out of every URL in a browser bookmarks export.",
     )
     ap.add_argument("path", help="Chrome/Edge 'Bookmarks' JSON file, or a Netscape Bookmarks.html export")

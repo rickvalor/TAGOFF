@@ -1,4 +1,4 @@
-//! Raw C-ABI WASM wrapper around `link_scrub::clean_url`, for the static
+//! Raw C-ABI WASM wrapper around `tagoff::clean_url`, for the static
 //! browser demo in `web_demo/`. No `wasm-bindgen` -- this crate's whole
 //! reason to exist is to prove the core logic runs in a browser with
 //! nothing but hand-written JS glue talking to WASM linear memory
@@ -6,7 +6,7 @@
 //! `LISTS`), which is exactly right for a page running in one visitor's
 //! own browser tab.
 
-use link_scrub::{clean_url, TrackerLists};
+use tagoff::{clean_url, TrackerLists};
 use std::alloc::{alloc, dealloc, Layout};
 use std::sync::OnceLock;
 

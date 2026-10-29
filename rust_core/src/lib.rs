@@ -1,4 +1,4 @@
-//! link_scrub: strip tracking query parameters from URLs, and unwrap known
+//! tagoff: strip tracking query parameters from URLs, and unwrap known
 //! "link-shim" redirectors (Facebook's l.php, Reddit's out.reddit.com,
 //! Slack's slack-redir.net, Outlook Safe Links, ...) back to the real
 //! destination they wrap.
@@ -132,23 +132,23 @@ impl TrackerLists {
 
 /// Feature 5: where a user's own overlay files
 /// (`extra_params.txt`/`extra_domains.txt`, same format as the shipped
-/// `data/` lists) live. `LINK_SCRUB_CONFIG_DIR` overrides everything, for
+/// `data/` lists) live. `TAGOFF_CONFIG_DIR` overrides everything, for
 /// tests and for anyone who wants a non-default location; otherwise
-/// `%APPDATA%\link_scrub` on Windows or `~/.config/link_scrub` elsewhere.
+/// `%APPDATA%\tagoff` on Windows or `~/.config/tagoff` elsewhere.
 /// Returns `None` only if neither the override nor the platform's home
 /// variable is set -- never panics, never touches the filesystem itself.
 pub fn user_config_dir() -> Option<std::path::PathBuf> {
-    if let Ok(dir) = std::env::var("LINK_SCRUB_CONFIG_DIR") {
+    if let Ok(dir) = std::env::var("TAGOFF_CONFIG_DIR") {
         return Some(std::path::PathBuf::from(dir));
     }
     if cfg!(windows) {
         std::env::var("APPDATA")
             .ok()
-            .map(|p| std::path::PathBuf::from(p).join("link_scrub"))
+            .map(|p| std::path::PathBuf::from(p).join("tagoff"))
     } else {
         std::env::var("HOME")
             .ok()
-            .map(|p| std::path::PathBuf::from(p).join(".config").join("link_scrub"))
+            .map(|p| std::path::PathBuf::from(p).join(".config").join("tagoff"))
     }
 }
 
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn read_overlay_returns_empty_strings_for_missing_files() {
-        let dir = std::env::temp_dir().join(format!("link_scrub_test_overlay_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("tagoff_test_overlay_{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let (params, domains) = read_overlay(&dir);
         assert_eq!(params, "");
@@ -582,7 +582,7 @@ mod tests {
 
     #[test]
     fn read_overlay_reads_real_files_when_present() {
-        let dir = std::env::temp_dir().join(format!("link_scrub_test_overlay2_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("tagoff_test_overlay2_{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         std::fs::write(dir.join("extra_params.txt"), "mytrack\n").unwrap();
         let (params, domains) = read_overlay(&dir);
@@ -593,10 +593,10 @@ mod tests {
 
     #[test]
     fn user_config_dir_honors_env_override() {
-        std::env::set_var("LINK_SCRUB_CONFIG_DIR", "/tmp/custom_link_scrub_dir");
+        std::env::set_var("TAGOFF_CONFIG_DIR", "/tmp/custom_tagoff_dir");
         let dir = user_config_dir();
-        std::env::remove_var("LINK_SCRUB_CONFIG_DIR");
-        assert_eq!(dir, Some(std::path::PathBuf::from("/tmp/custom_link_scrub_dir")));
+        std::env::remove_var("TAGOFF_CONFIG_DIR");
+        assert_eq!(dir, Some(std::path::PathBuf::from("/tmp/custom_tagoff_dir")));
     }
 
     #[test]

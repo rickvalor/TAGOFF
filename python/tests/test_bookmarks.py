@@ -4,8 +4,8 @@ Bookmarks.html export.
 """
 import json
 
-from link_scrub.bookmarks import clean_chrome_bookmarks_json, clean_netscape_html, main
-from link_scrub.scrubber import TrackerLists
+from tagoff.bookmarks import clean_chrome_bookmarks_json, clean_netscape_html, main
+from tagoff.scrubber import TrackerLists
 
 FIXTURE_PARAMS = "utm_*\nfbclid\n"
 FIXTURE_DOMAINS = ""
@@ -105,7 +105,7 @@ def test_cli_write_makes_a_backup_and_updates_in_place(tmp_path, capsys):
     assert updated["roots"]["bookmark_bar"]["children"][0]["url"] == "https://example.com/a?id=1"
 
     # no leftover atomic-write temp file
-    leftovers = list(tmp_path.glob(".link_scrub_tmp_*"))
+    leftovers = list(tmp_path.glob(".tagoff_tmp_*"))
     assert leftovers == []
 
 

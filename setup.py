@@ -4,7 +4,7 @@ installs this repo from its ROOT -- pre-commit's `language: python` hooks
 being the real-world case that made this necessary (see pyproject.toml's
 own header comment and round 18 of docs/CRITIQUE_LEDGER.md).
 
-Copies the canonical data/*.txt into python/link_scrub/data/ at build
+Copies the canonical data/*.txt into python/tagoff/data/ at build
 time, same destination python/setup.py's hook uses, so the two never
 disagree about where the packaged snapshot lives.
 """
@@ -16,7 +16,7 @@ from setuptools.command.build_py import build_py as _build_py
 
 HERE = Path(__file__).resolve().parent
 SOURCE_DATA = HERE / "data"
-PACKAGED_DATA = HERE / "python" / "link_scrub" / "data"
+PACKAGED_DATA = HERE / "python" / "tagoff" / "data"
 
 
 class build_py(_build_py):

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from link_scrub.scrubber import TrackerLists, clean_url
+from tagoff.scrubber import TrackerLists, clean_url
 
 GOLDEN_FILE = Path(__file__).resolve().parents[2] / "test_fixtures" / "golden_cases.txt"
 FIXTURE_PARAMS = "utm_*\nfbclid\ngclid\n"

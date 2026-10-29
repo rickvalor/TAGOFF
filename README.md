@@ -1,6 +1,6 @@
-# LINK_SCRUB
+# TAGOFF
 
-[![CI](https://github.com/OWNER/LINK_SCRUB/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/OWNER/TAGOFF/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 _(badge above will resolve once this is pushed to a real GitHub remote —
 see `.github/workflows/ci.yml` directly until then.)_
 
@@ -26,7 +26,7 @@ source:
 ```
 rust_core/      zero-dependency Rust library + CLI binary (fast path, embeds
                 the lists at compile time)
-python/         pure-Python package (link_scrub) + CLI + extra tools
+python/         pure-Python package (tagoff) + CLI + extra tools
                 (bookmarks cleaner, Markdown link cleaner, pre-commit hook)
 wasm_demo/      raw-C-ABI WASM wrapper around rust_core (no wasm-bindgen,
                 stays dependency-free); verify.mjs proves it end-to-end via Node
@@ -66,7 +66,7 @@ action.yml, .pre-commit-hooks.yaml, pyproject.toml/setup.py (root)
    embeds them at compile time (`include_str!`); Python reads them at
    runtime. Edit the `.txt` files, not the code, to add/remove an entry —
    then rebuild the Rust binary to pick it up.
-4. **The clipboard watcher is opt-in, always.** `link_scrub.clipboard_watch`
+4. **The clipboard watcher is opt-in, always.** `tagoff.clipboard_watch`
    never starts itself; it's a separate command you run deliberately, and it
    only ever touches the clipboard while it's actively running in the
    foreground of that terminal.
@@ -81,7 +81,7 @@ Use the GNU toolchain instead (already installed):
 cd rust_core
 cargo +stable-x86_64-pc-windows-gnu test
 cargo +stable-x86_64-pc-windows-gnu build --release
-.\target\release\link_scrub.exe -v "https://example.com/a?utm_source=x&id=1"
+.\target\release\tagoff.exe -v "https://example.com/a?utm_source=x&id=1"
 ```
 
 Reads URLs from argv, or one per line from stdin if none are given. `-v`
@@ -92,11 +92,11 @@ prints what was removed/unwrapped to stderr.
 ```powershell
 cd python
 pip install -e .
-link-scrub -v "https://example.com/a?utm_source=x&id=1"
+tagoff -v "https://example.com/a?utm_source=x&id=1"
 
 # optional: auto-clean whatever URL you copy, while this stays running
 pip install -e ".[clipboard]"
-link-scrub-watch
+tagoff-watch
 ```
 
 `-e` is for development convenience (edits to `data/*.txt` apply without
@@ -105,13 +105,13 @@ self-contained now (`setup.py` copies the lists in at build time; see
 round 16 of the critique ledger). Extra tools, same install:
 
 ```powershell
-link-scrub-bookmarks path/to/Bookmarks          # Chrome/Edge JSON, or a Netscape Bookmarks.html export
-link-scrub-md path/to/doc.md                    # cleans every link in a Markdown file
-link-scrub-precommit file1 file2 ...             # exits 1 if any file has a tracking-laden URL
+tagoff-bookmarks path/to/Bookmarks          # Chrome/Edge JSON, or a Netscape Bookmarks.html export
+tagoff-md path/to/doc.md                    # cleans every link in a Markdown file
+tagoff-precommit file1 file2 ...             # exits 1 if any file has a tracking-laden URL
 ```
 
 All four of `--write`/`--output`/dry-run default/`--diff` behave the same
-way across `link-scrub`, `link-scrub-bookmarks`, and `link-scrub-md`:
+way across `tagoff`, `tagoff-bookmarks`, and `tagoff-md`:
 dry-run by default, `--write` makes a `.bak` backup first.
 
 Running the tests (also installs `pytest` via the `dev` extra):
@@ -135,13 +135,13 @@ they still agree.
 
 ## Features
 
-Both `link-scrub` (Python) and `link_scrub` (Rust) share the same flag
+Both `tagoff` (Python) and `tagoff` (Rust) share the same flag
 surface: `-v/--verbose`, `--json`, `--diff`, `--stats`, `--check` (exit 1
 if anything had tracking — a CI/pre-commit gate), `--list-params`/
 `--list-domains` (audit the rules before trusting them), `--input FILE`/
 `--output FILE` (atomic write). A user config overlay
-(`extra_params.txt`/`extra_domains.txt` in `%APPDATA%\link_scrub` or
-`~/.config/link_scrub`, overridable via `LINK_SCRUB_CONFIG_DIR`) lets you
+(`extra_params.txt`/`extra_domains.txt` in `%APPDATA%\tagoff` or
+`~/.config/tagoff`, overridable via `TAGOFF_CONFIG_DIR`) lets you
 add your own rules without touching the shipped lists. Shell completions
 for bash/zsh/PowerShell are in `completions/`. Three more tools ship with
 the Python package: a browser bookmarks cleaner, a Markdown link cleaner,

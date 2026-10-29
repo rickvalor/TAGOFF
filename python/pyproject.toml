@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "link-scrub"
+name = "tagoff"
 version = "0.1.0"
 description = "Strip tracking query params from URLs and unwrap known link-shim redirectors. Zero network calls."
 readme = "README.md"
@@ -16,20 +16,20 @@ clipboard = ["pyperclip"]
 dev = ["pytest"]
 
 [project.scripts]
-link-scrub = "link_scrub.cli:main"
-link-scrub-watch = "link_scrub.clipboard_watch:main"
-link-scrub-bookmarks = "link_scrub.bookmarks:main"
-link-scrub-md = "link_scrub.markdown:main"
-link-scrub-precommit = "link_scrub.precommit_hook:main"
+tagoff = "tagoff.cli:main"
+tagoff-watch = "tagoff.clipboard_watch:main"
+tagoff-bookmarks = "tagoff.bookmarks:main"
+tagoff-md = "tagoff.markdown:main"
+tagoff-precommit = "tagoff.precommit_hook:main"
 
 [tool.setuptools]
-packages = ["link_scrub"]
+packages = ["tagoff"]
 
 [tool.setuptools.package-data]
-link_scrub = ["py.typed", "data/*.txt"]
+tagoff = ["py.typed", "data/*.txt"]
 
 # The canonical tracker lists live at ../data (shared with rust_core).
-# setup.py's custom build_py step copies a snapshot into link_scrub/data/
+# setup.py's custom build_py step copies a snapshot into tagoff/data/
 # at build time, so a real (non-editable) wheel is self-contained -- see
 # scrubber.py's _resolve_data_dir() for the two-case lookup, and round 16
 # of docs/CRITIQUE_LEDGER.md for why this exists (the original design only

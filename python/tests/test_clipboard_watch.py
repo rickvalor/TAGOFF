@@ -6,7 +6,7 @@ whole background process.
 import sys
 import types
 
-from link_scrub import clipboard_watch
+from tagoff import clipboard_watch
 
 
 class _FakePyperclipException(Exception):

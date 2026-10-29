@@ -66,7 +66,7 @@ def clean_markdown(text: str, lists: TrackerLists) -> tuple[str, CleanStats]:
 
 
 def _atomic_write(path: Path, content: str) -> None:
-    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), prefix=".link_scrub_tmp_")
+    fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), prefix=".tagoff_tmp_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(content)
@@ -78,7 +78,7 @@ def _atomic_write(path: Path, content: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="link-scrub-md",
+        prog="tagoff-md",
         description="Clean tracking params out of every link in a Markdown file.",
     )
     ap.add_argument("path", help="a .md file")

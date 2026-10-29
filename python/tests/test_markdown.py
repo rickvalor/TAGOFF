@@ -1,6 +1,6 @@
 """Feature 9: Markdown link cleaner."""
-from link_scrub.markdown import clean_markdown, main
-from link_scrub.scrubber import TrackerLists
+from tagoff.markdown import clean_markdown, main
+from tagoff.scrubber import TrackerLists
 
 FIXTURE_PARAMS = "utm_*\nfbclid\n"
 
@@ -64,5 +64,5 @@ def test_cli_dry_run_then_write(tmp_path, capsys):
     assert (tmp_path / "doc.md.bak").read_bytes() == original
     assert "utm_source" not in path.read_text(encoding="utf-8")
 
-    leftovers = list(tmp_path.glob(".link_scrub_tmp_*"))
+    leftovers = list(tmp_path.glob(".tagoff_tmp_*"))
     assert leftovers == []

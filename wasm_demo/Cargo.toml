@@ -1,14 +1,14 @@
 [package]
-name = "link_scrub_wasm"
+name = "tagoff_wasm"
 version = "0.1.0"
 edition = "2021"
-description = "Raw C-ABI WASM wrapper around link_scrub's core, for the static browser demo. Separate crate on purpose -- rust_core stays zero-dependency; this one trades that for a browser target, with no wasm-bindgen dependency either (hand-written JS glue instead), so even this wrapper stays dependency-free."
+description = "Raw C-ABI WASM wrapper around tagoff's core, for the static browser demo. Separate crate on purpose -- rust_core stays zero-dependency; this one trades that for a browser target, with no wasm-bindgen dependency either (hand-written JS glue instead), so even this wrapper stays dependency-free."
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-link_scrub = { path = "../rust_core" }
+tagoff = { path = "../rust_core" }
 
 [profile.release]
 opt-level = "s"

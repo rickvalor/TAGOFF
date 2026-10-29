@@ -1,4 +1,4 @@
-//! CLI for link_scrub. Cleans URLs given as arguments, or one per line on
+//! CLI for tagoff. Cleans URLs given as arguments, or one per line on
 //! stdin if none are given.
 //!
 //! The tracker lists are compiled into the binary (`include_str!`) so the
@@ -6,7 +6,7 @@
 //! `data/tracking_params.txt` or `data/tracking_domains.txt` and rebuild to
 //! pick up changes.
 
-use link_scrub::{clean_url, json_escape, read_overlay, user_config_dir, CleanResult, TrackerLists};
+use tagoff::{clean_url, json_escape, read_overlay, user_config_dir, CleanResult, TrackerLists};
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -16,10 +16,10 @@ const DOMAINS_TXT: &str = include_str!("../../data/tracking_domains.txt");
 const MAX_UNWRAP_DEPTH: u8 = 3;
 
 const USAGE: &str = "\
-link_scrub -- strip tracking query params from URLs and unwrap known link-shim redirectors.
+tagoff -- strip tracking query params from URLs and unwrap known link-shim redirectors.
 
 USAGE:
-    link_scrub [OPTIONS] [URL ...]
+    tagoff [OPTIONS] [URL ...]
 
     With no URLs given, reads one URL per line from stdin (or --input).
 
@@ -57,7 +57,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     if args.iter().any(|a| a == "-V" || a == "--version") {
-        println!("link_scrub {}", env!("CARGO_PKG_VERSION"));
+        println!("tagoff {}", env!("CARGO_PKG_VERSION"));
         return ExitCode::SUCCESS;
     }
 
@@ -76,19 +76,19 @@ fn main() -> ExitCode {
             "--input" => match iter.next() {
                 Some(v) => opts.input = Some(PathBuf::from(v)),
                 None => {
-                    eprintln!("link_scrub: --input requires a file path\n\n{USAGE}");
+                    eprintln!("tagoff: --input requires a file path\n\n{USAGE}");
                     return ExitCode::FAILURE;
                 }
             },
             "--output" => match iter.next() {
                 Some(v) => opts.output = Some(PathBuf::from(v)),
                 None => {
-                    eprintln!("link_scrub: --output requires a file path\n\n{USAGE}");
+                    eprintln!("tagoff: --output requires a file path\n\n{USAGE}");
                     return ExitCode::FAILURE;
                 }
             },
             other if other.starts_with('-') && other.len() > 1 => {
-                eprintln!("link_scrub: unrecognized option '{other}'\n\n{USAGE}");
+                eprintln!("tagoff: unrecognized option '{other}'\n\n{USAGE}");
                 return ExitCode::FAILURE;
             }
             other => urls.push(other.to_string()),
@@ -118,7 +118,7 @@ fn main() -> ExitCode {
         Some(path) => match std::fs::read_to_string(path) {
             Ok(text) => text.lines().map(|l| l.to_string()).collect(),
             Err(e) => {
-                eprintln!("link_scrub: could not read {path:?}: {e}");
+                eprintln!("tagoff: could not read {path:?}: {e}");
                 return ExitCode::FAILURE;
             }
         },
@@ -188,7 +188,7 @@ fn main() -> ExitCode {
             content.push('\n');
         }
         if let Err(e) = atomic_write(path, &content) {
-            eprintln!("link_scrub: could not write {path:?}: {e}");
+            eprintln!("tagoff: could not write {path:?}: {e}");
             return ExitCode::FAILURE;
         }
     }
@@ -206,7 +206,7 @@ fn main() -> ExitCode {
 
 fn atomic_write(path: &std::path::Path, content: &str) -> io::Result<()> {
     let dir = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| std::path::Path::new("."));
-    let tmp_path = dir.join(format!(".link_scrub_tmp_{}", std::process::id()));
+    let tmp_path = dir.join(format!(".tagoff_tmp_{}", std::process::id()));
     std::fs::write(&tmp_path, content)?;
     std::fs::rename(&tmp_path, path)
 }
@@ -250,7 +250,7 @@ fn print_stats(
     total_unwrapped: u64,
     param_counts: &std::collections::HashMap<String, u64>,
 ) {
-    eprintln!("--- link_scrub stats ---");
+    eprintln!("--- tagoff stats ---");
     eprintln!("URLs processed:        {total}");
     eprintln!("Tracking params removed: {total_removed}");
     eprintln!("Redirectors unwrapped: {total_unwrapped}");

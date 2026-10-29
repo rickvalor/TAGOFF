@@ -53,10 +53,10 @@ def main(argv: list[str] | None = None) -> int:
         all_findings.extend(scan_file(path, lists))
 
     if all_findings:
-        print("link-scrub-precommit: tracking-laden URLs found:\n")
+        print("tagoff-precommit: tracking-laden URLs found:\n")
         for finding in all_findings:
             print(finding)
-        print(f"\n{len(all_findings)} link(s) need cleaning. Run link-scrub -v on them, or edit by hand.")
+        print(f"\n{len(all_findings)} link(s) need cleaning. Run tagoff -v on them, or edit by hand.")
         return 1
 
     return 0

@@ -1,6 +1,6 @@
-#compdef link-scrub link_scrub link-scrub-watch
-# zsh completion for link-scrub / link_scrub.
-# Install: copy as _link-scrub into a directory on your $fpath.
+#compdef tagoff tagoff tagoff-watch
+# zsh completion for tagoff / tagoff.
+# Install: copy as _tagoff into a directory on your $fpath.
 
 _arguments \
   '(-v --verbose)'{-v,--verbose}'[print what was removed/unwrapped, to stderr]' \

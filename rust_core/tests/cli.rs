@@ -1,15 +1,15 @@
-//! Integration tests for the `link_scrub` CLI binary itself (argv parsing,
+//! Integration tests for the `tagoff` CLI binary itself (argv parsing,
 //! --help/--version/error paths, stdin mode). Round 13 of the critique
 //! ledger: round 5 rewrote all of this and it had zero automated coverage,
 //! only a one-time manual check -- nothing would have caught a regression.
-//! Uses `env!("CARGO_BIN_EXE_link_scrub")`, which Cargo provides to
+//! Uses `env!("CARGO_BIN_EXE_tagoff")`, which Cargo provides to
 //! integration tests automatically; no extra dependency needed.
 
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn bin() -> &'static str {
-    env!("CARGO_BIN_EXE_link_scrub")
+    env!("CARGO_BIN_EXE_tagoff")
 }
 
 #[test]
@@ -18,7 +18,7 @@ fn help_prints_usage_and_exits_zero() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("USAGE"));
-    assert!(stdout.contains("link_scrub"));
+    assert!(stdout.contains("tagoff"));
 }
 
 #[test]
@@ -33,7 +33,7 @@ fn version_prints_and_exits_zero() {
     let output = Command::new(bin()).arg("-V").output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.trim().starts_with("link_scrub "));
+    assert!(stdout.trim().starts_with("tagoff "));
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn diff_mode_shows_minus_plus_for_changed_and_unchanged_marker_otherwise() {
 
 #[test]
 fn input_and_output_files_round_trip() {
-    let dir = std::env::temp_dir().join(format!("link_scrub_cli_io_test_{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("tagoff_cli_io_test_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let input_path = dir.join("in.txt");
     let output_path = dir.join("out.txt");
@@ -106,7 +106,7 @@ fn input_and_output_files_round_trip() {
     let leftovers: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_name().to_string_lossy().starts_with(".link_scrub_tmp_"))
+        .filter(|e| e.file_name().to_string_lossy().starts_with(".tagoff_tmp_"))
         .collect();
     assert!(leftovers.is_empty());
     std::fs::remove_dir_all(&dir).ok();

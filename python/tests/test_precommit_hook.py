@@ -1,6 +1,6 @@
 """Feature 12: pre-commit hook."""
-from link_scrub.precommit_hook import main, scan_file
-from link_scrub.scrubber import TrackerLists
+from tagoff.precommit_hook import main, scan_file
+from tagoff.scrubber import TrackerLists
 
 
 def _lists() -> TrackerLists:

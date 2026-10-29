@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const wasmPath = path.join(here, "target", "wasm32-unknown-unknown", "release", "link_scrub_wasm.wasm");
+const wasmPath = path.join(here, "target", "wasm32-unknown-unknown", "release", "tagoff_wasm.wasm");
 const paramsText = readFileSync(path.join(here, "..", "data", "tracking_params.txt"), "utf8");
 const domainsText = readFileSync(path.join(here, "..", "data", "tracking_domains.txt"), "utf8");
 
@@ -64,4 +64,4 @@ if (failures > 0) {
     console.error(`\n${failures} case(s) failed`);
     process.exit(1);
 }
-console.log("\nAll cases passed -- the WASM build of link_scrub's core works end-to-end.");
+console.log("\nAll cases passed -- the WASM build of tagoff's core works end-to-end.");

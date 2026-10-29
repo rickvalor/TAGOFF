@@ -7,7 +7,7 @@
 
 async function loadLinkScrub() {
     const [wasmBytes, paramsText, domainsText] = await Promise.all([
-        fetch("link_scrub_wasm.wasm").then((r) => r.arrayBuffer()),
+        fetch("tagoff_wasm.wasm").then((r) => r.arrayBuffer()),
         fetch("data/tracking_params.txt").then((r) => r.text()),
         fetch("data/tracking_domains.txt").then((r) => r.text()),
     ]);

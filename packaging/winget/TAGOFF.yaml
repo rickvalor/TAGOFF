@@ -6,7 +6,7 @@
 # locale) per https://github.com/microsoft/winget-pkgs's schema.
 PackageIdentifier: OWNER.LinkScrub
 PackageVersion: 0.1.0
-PackageName: link-scrub
+PackageName: tagoff
 Publisher: OWNER
 License: MIT
 ShortDescription: Strip tracking query params from URLs and unwrap link-shim redirectors.
@@ -14,7 +14,7 @@ Installers:
   - Architecture: x64
     InstallerType: zip
     # TODO: replace with the real release asset URL once one exists.
-    InstallerUrl: https://github.com/OWNER/LINK_SCRUB/releases/download/vX.Y.Z/link_scrub-x86_64-pc-windows-msvc.zip
+    InstallerUrl: https://github.com/OWNER/TAGOFF/releases/download/vX.Y.Z/tagoff-x86_64-pc-windows-msvc.zip
     # TODO: replace with the real SHA256 of that asset.
     InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000"
 ManifestType: singleton

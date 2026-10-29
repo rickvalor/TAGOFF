@@ -1,0 +1,18 @@
+[package]
+name = "link_scrub"
+version = "0.1.0"
+edition = "2021"
+description = "Strip tracking query params from URLs and unwrap known link-shim redirectors. Zero network calls."
+license = "MIT"
+
+[lib]
+name = "link_scrub"
+path = "src/lib.rs"
+
+[[bin]]
+name = "link_scrub"
+path = "src/main.rs"
+
+# Deliberately zero dependencies: this tool only ever splits strings on
+# '?'/'#'/'&'/'=' and does percent-decoding, which doesn't need a URL crate.
+# Keeping it dependency-free means `cargo build` never needs network access.

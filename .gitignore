@@ -1,0 +1,7 @@
+/rust_core/target/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+/python/build/
+/python/dist/

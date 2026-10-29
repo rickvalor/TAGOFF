@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "url-scrub"
+version = "0.1.0"
+description = "Strip tracking query params from URLs and unwrap known link-shim redirectors. Zero network calls."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+clipboard = ["pyperclip"]
+dev = ["pytest"]
+
+[project.scripts]
+url-scrub = "url_scrub.cli:main"
+url-scrub-watch = "url_scrub.clipboard_watch:main"
+
+[tool.setuptools]
+packages = ["url_scrub"]
+
+[tool.setuptools.package-data]
+url_scrub = []
+
+# The shipped tracker lists live at ../data relative to this package (see
+# scrubber.py's DATA_DIR), not inside the package itself -- an editable
+# install (`pip install -e .`) keeps that relative path valid since it
+# points back at the source tree. A non-editable wheel install would NOT
+# carry data/ along; this package is meant to be run from a source
+# checkout, not redistributed as a standalone wheel, until that's fixed.

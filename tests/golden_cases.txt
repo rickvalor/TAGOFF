@@ -1,0 +1,25 @@
+# Golden test vectors loaded by BOTH rust_core's tests and python's tests,
+# so parity between the two implementations is checked mechanically rather
+# than by eyeballing two hand-written test files (round 2 of the critique
+# ledger). Run against the same small fixture lists the hand-written unit
+# tests use (utm_*, fbclid, gclid as params; clickwrap.example and
+# *.shim.example as redirectors) -- NOT the real shipped data/ lists, so
+# these cases stay stable even as the real lists grow.
+#
+# Format: four '|||'-separated fields per line, comments start with '#':
+#   input ||| expected_cleaned ||| expected_removed (comma-joined, or empty) ||| expected_unwrapped (true/false)
+
+https://example.com/path ||| https://example.com/path ||| ||| false
+https://example.com/path?utm_source=x ||| https://example.com/path ||| utm_source ||| false
+https://example.com/path?utm_source=x&utm_medium=y&fbclid=z&keep=1 ||| https://example.com/path?keep=1 ||| utm_source,utm_medium,fbclid ||| false
+https://example.com/path?keep=1 ||| https://example.com/path?keep=1 ||| ||| false
+https://EXAMPLE.COM/path?UTM_SOURCE=x&Keep=1 ||| https://EXAMPLE.COM/path?Keep=1 ||| UTM_SOURCE ||| false
+https://example.com/path#section1 ||| https://example.com/path#section1 ||| ||| false
+https://example.com/path#utm_source=share ||| https://example.com/path ||| ||| false
+https://example.com/path?a=&b=1&flag ||| https://example.com/path?a=&b=1&flag ||| ||| false
+https://example.com/path?a=1&a=2&utm_source=x ||| https://example.com/path?a=1&a=2 ||| utm_source ||| false
+https://clickwrap.example/go?url=https%3A%2F%2Freal.example%2Fpath%3Futm_source%3Dnews&gclid=abc ||| https://real.example/path ||| utm_source ||| true
+https://tenant123.shim.example/go?u=https%3A%2F%2Freal.example%2F ||| https://real.example/ ||| ||| true
+https://CLICKWRAP.EXAMPLE/go?url=https%3A%2F%2Freal.example%2F ||| https://real.example/ ||| ||| true
+https://notwrapped.example/go?url=https://real.example/path ||| https://notwrapped.example/go?url=https://real.example/path ||| ||| false
+hello world not a url ||| hello world not a url ||| ||| false

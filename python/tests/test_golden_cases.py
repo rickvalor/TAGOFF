@@ -1,15 +1,16 @@
 """Round 2 of the critique ledger: cross-implementation parity, checked
-mechanically against one shared file (tests/golden_cases.txt at the repo
-root) instead of trusting that this suite and rust_core/src/lib.rs's
-golden_cases_match test stayed in sync by eye.
+mechanically against one shared file (test_fixtures/golden_cases.txt at
+the repo root, renamed from tests/ in round 15 to stop it looking like a
+third test suite) instead of trusting that this suite and
+rust_core/src/lib.rs's golden_cases_match test stayed in sync by eye.
 """
 from pathlib import Path
 
 import pytest
 
-from url_scrub.scrubber import TrackerLists, clean_url
+from link_scrub.scrubber import TrackerLists, clean_url
 
-GOLDEN_FILE = Path(__file__).resolve().parents[2] / "tests" / "golden_cases.txt"
+GOLDEN_FILE = Path(__file__).resolve().parents[2] / "test_fixtures" / "golden_cases.txt"
 FIXTURE_PARAMS = "utm_*\nfbclid\ngclid\n"
 FIXTURE_DOMAINS = "clickwrap.example\n*.shim.example\n"
 

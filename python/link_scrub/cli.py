@@ -1,4 +1,4 @@
-"""CLI entry point: `python -m url_scrub [urls...]`.
+"""CLI entry point: `python -m link_scrub [urls...]`.
 
 Reads stdin (one URL per line) if no URLs are given as arguments.
 """
@@ -13,7 +13,7 @@ from .scrubber import TrackerLists, clean_url
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="url-scrub",
+        prog="link-scrub",
         description="Strip tracking query params from URLs and unwrap known link-shim redirectors.",
     )
     ap.add_argument("urls", nargs="*", help="URLs to clean; reads stdin (one per line) if omitted")

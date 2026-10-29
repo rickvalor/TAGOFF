@@ -10,7 +10,7 @@ that evaporates after this session.
 import random
 import string
 
-from url_scrub.scrubber import TrackerLists, clean_url
+from link_scrub.scrubber import TrackerLists, clean_url
 
 ALPHABET = "abcXYZ019 ?&=#%./:[]\0\\'\"<>+"
 

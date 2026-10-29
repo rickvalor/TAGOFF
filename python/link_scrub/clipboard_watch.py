@@ -2,7 +2,7 @@
 cleaned ones, in place, as soon as you copy them.
 
 Opt-in only -- this never starts on its own; run it explicitly with
-`python -m url_scrub.clipboard_watch`. Requires `pyperclip`
+`python -m link_scrub.clipboard_watch`. Requires `pyperclip`
 (`pip install pyperclip`); exits with a clear message rather than silently
 doing nothing if it's missing.
 """

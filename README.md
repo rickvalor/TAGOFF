@@ -21,12 +21,18 @@ Two parallel implementations, kept in lockstep against one shared data
 source:
 
 ```
-rust_core/   zero-dependency Rust library + CLI binary (fast path, embeds
-             the lists at compile time)
-python/      pure-Python package + CLI (easy to run anywhere, no build step)
-data/        the one shared source of truth both sides load:
-               tracking_params.txt   -- tracking query-param names/prefixes
-               tracking_domains.txt  -- known link-shim redirector hosts
+rust_core/      zero-dependency Rust library + CLI binary (fast path, embeds
+                the lists at compile time)
+python/         pure-Python package (link_scrub) + CLI (easy to run anywhere,
+                no build step)
+data/           the one shared source of truth both sides load:
+                  tracking_params.txt   -- tracking query-param names/prefixes
+                  tracking_domains.txt  -- known link-shim redirector hosts
+test_fixtures/  golden_cases.txt -- shared test vectors both languages' real
+                test suites (rust_core/tests/, python/tests/) load; not a
+                suite of its own
+scripts/        bench.py -- cross-language benchmark
+docs/           CRITIQUE_LEDGER.md, EXAMPLES.md, BENCHMARKS.md
 ```
 
 ## Laws (binding)
@@ -47,7 +53,7 @@ data/        the one shared source of truth both sides load:
    embeds them at compile time (`include_str!`); Python reads them at
    runtime. Edit the `.txt` files, not the code, to add/remove an entry —
    then rebuild the Rust binary to pick it up.
-4. **The clipboard watcher is opt-in, always.** `url_scrub.clipboard_watch`
+4. **The clipboard watcher is opt-in, always.** `link_scrub.clipboard_watch`
    never starts itself; it's a separate command you run deliberately, and it
    only ever touches the clipboard while it's actively running in the
    foreground of that terminal.
@@ -73,11 +79,11 @@ prints what was removed/unwrapped to stderr.
 ```powershell
 cd python
 pip install -e .
-url-scrub -v "https://example.com/a?utm_source=x&id=1"
+link-scrub -v "https://example.com/a?utm_source=x&id=1"
 
 # optional: auto-clean whatever URL you copy, while this stays running
 pip install -e ".[clipboard]"
-url-scrub-watch
+link-scrub-watch
 ```
 
 This is an editable install (`-e`) on purpose: the shipped `data/` lists
@@ -99,7 +105,7 @@ host + all subdomains). Both files are plain text with `#` comments — see
 the header of each for the exact format, and the inline "KNOWN
 FALSE-POSITIVE RISK" notes for entries that are a real tradeoff, not a free
 win. Python picks up edits immediately; Rust needs a rebuild. Update
-`tests/golden_cases.txt` too if the change affects one of its cases — both
+`test_fixtures/golden_cases.txt` too if the change affects one of its cases — both
 languages' test suites load that one file, so it's the fastest way to prove
 they still agree.
 

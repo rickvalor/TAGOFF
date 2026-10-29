@@ -1,4 +1,4 @@
-# url-scrub
+# link-scrub
 
 Strip tracking query params from URLs and unwrap known link-shim
 redirectors. Zero network calls.
@@ -11,8 +11,8 @@ root it's building from, not a parent directory.
 
 ```powershell
 pip install -e .
-url-scrub -v "https://example.com/a?utm_source=x&id=1"
+link-scrub -v "https://example.com/a?utm_source=x&id=1"
 
 pip install -e ".[clipboard]"
-url-scrub-watch
+link-scrub-watch
 ```

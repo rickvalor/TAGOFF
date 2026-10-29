@@ -317,12 +317,13 @@ mod tests {
     }
 
     /// Round 2: cross-implementation parity, checked mechanically against
-    /// one shared file (`tests/golden_cases.txt` at the repo root) instead
-    /// of trusting that this file and `python/tests/test_scrubber.py`
-    /// stayed in sync by eye.
+    /// one shared file (`test_fixtures/golden_cases.txt` at the repo root,
+    /// renamed from `tests/` in round 15 to stop it looking like a third
+    /// test suite) instead of trusting that this file and
+    /// `python/tests/test_scrubber.py` stayed in sync by eye.
     #[test]
     fn golden_cases_match() {
-        let raw = include_str!("../../tests/golden_cases.txt");
+        let raw = include_str!("../../test_fixtures/golden_cases.txt");
         let lists = test_lists();
         let mut checked = 0;
         for (lineno, raw_line) in raw.lines().enumerate() {

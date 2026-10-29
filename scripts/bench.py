@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RUST_BIN = ROOT / "rust_core" / "target" / "release" / "link_scrub.exe"
 
 sys.path.insert(0, str(ROOT / "python"))
-from url_scrub.scrubber import TrackerLists, clean_url  # noqa: E402
+from link_scrub.scrubber import TrackerLists, clean_url  # noqa: E402
 
 
 def make_urls(n: int) -> list[str]:

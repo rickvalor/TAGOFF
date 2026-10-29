@@ -1,0 +1,36 @@
+# Root-level packaging config, DISTINCT from python/pyproject.toml.
+#
+# Why two: the real Python package lives in python/link_scrub/ (see
+# python/pyproject.toml for the normal dev workflow, `cd python && pip
+# install -e .`). But .pre-commit-hooks.yaml's `language: python` hooks
+# work by `pip install`-ing the REPO ROOT -- confirmed by actually running
+# `pip install .` from here and watching it fail with "Neither setup.py
+# nor pyproject.toml found" before this file existed (round 18 of
+# docs/CRITIQUE_LEDGER.md). This file exists only so that path works too.
+# Keep both in sync if the package's scripts/metadata change.
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "link-scrub"
+version = "0.1.0"
+description = "Strip tracking query params from URLs and unwrap known link-shim redirectors. Zero network calls."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+link-scrub = "link_scrub.cli:main"
+link-scrub-watch = "link_scrub.clipboard_watch:main"
+link-scrub-bookmarks = "link_scrub.bookmarks:main"
+link-scrub-md = "link_scrub.markdown:main"
+link-scrub-precommit = "link_scrub.precommit_hook:main"
+
+[tool.setuptools]
+package-dir = { "link_scrub" = "python/link_scrub" }
+packages = ["link_scrub"]
+
+[tool.setuptools.package-data]
+link_scrub = ["py.typed", "data/*.txt"]

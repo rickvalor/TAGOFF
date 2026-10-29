@@ -34,8 +34,21 @@ impl TrackerLists {
     /// Parse the two list files from their text content (see the comment
     /// header of each file in `data/` for the exact format).
     pub fn from_lines(params_text: &str, domains_text: &str) -> Self {
-        let mut params = HashSet::new();
-        let mut param_prefixes = Vec::new();
+        let mut lists = TrackerLists {
+            params: HashSet::new(),
+            param_prefixes: Vec::new(),
+            redirect_domains: HashSet::new(),
+            redirect_domain_suffixes: Vec::new(),
+        };
+        lists.extend_from_lines(params_text, domains_text);
+        lists
+    }
+
+    /// Feature 5 (user config overlay): merge more rules into an existing
+    /// `TrackerLists`, same text format as [`Self::from_lines`]. Used to
+    /// layer a user's own `extra_params.txt`/`extra_domains.txt` on top of
+    /// the shipped lists without ever touching the shipped files.
+    pub fn extend_from_lines(&mut self, params_text: &str, domains_text: &str) {
         for raw in params_text.lines() {
             let line = raw.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -43,14 +56,12 @@ impl TrackerLists {
             }
             let lower = line.to_ascii_lowercase();
             if let Some(prefix) = lower.strip_suffix('*') {
-                param_prefixes.push(prefix.to_string());
+                self.param_prefixes.push(prefix.to_string());
             } else {
-                params.insert(lower);
+                self.params.insert(lower);
             }
         }
 
-        let mut redirect_domains = HashSet::new();
-        let mut redirect_domain_suffixes = Vec::new();
         for raw in domains_text.lines() {
             let line = raw.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -58,17 +69,10 @@ impl TrackerLists {
             }
             let lower = line.to_ascii_lowercase();
             if let Some(suffix) = lower.strip_prefix("*.") {
-                redirect_domain_suffixes.push(suffix.to_string());
+                self.redirect_domain_suffixes.push(suffix.to_string());
             } else {
-                redirect_domains.insert(lower);
+                self.redirect_domains.insert(lower);
             }
-        }
-
-        TrackerLists {
-            params,
-            param_prefixes,
-            redirect_domains,
-            redirect_domain_suffixes,
         }
     }
 
@@ -89,6 +93,92 @@ impl TrackerLists {
             .iter()
             .any(|suf| lower == *suf || lower.ends_with(&format!(".{suf}")))
     }
+
+    /// Feature 3 (`--list-params`): human-readable lines describing every
+    /// loaded param rule, sorted, so a user can audit exactly what will be
+    /// stripped before trusting the tool with a real link.
+    pub fn describe_params(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+        let mut exact: Vec<&String> = self.params.iter().collect();
+        exact.sort();
+        for p in exact {
+            lines.push(format!("exact : {p}"));
+        }
+        let mut prefixes = self.param_prefixes.clone();
+        prefixes.sort();
+        for p in prefixes {
+            lines.push(format!("prefix: {p}*"));
+        }
+        lines
+    }
+
+    /// Feature 3 (`--list-domains`): same idea as [`describe_params`], for
+    /// the redirector-domain list.
+    pub fn describe_domains(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+        let mut exact: Vec<&String> = self.redirect_domains.iter().collect();
+        exact.sort();
+        for d in exact {
+            lines.push(format!("exact : {d}"));
+        }
+        let mut suffixes = self.redirect_domain_suffixes.clone();
+        suffixes.sort();
+        for d in suffixes {
+            lines.push(format!("suffix: *.{d}"));
+        }
+        lines
+    }
+}
+
+/// Feature 5: where a user's own overlay files
+/// (`extra_params.txt`/`extra_domains.txt`, same format as the shipped
+/// `data/` lists) live. `LINK_SCRUB_CONFIG_DIR` overrides everything, for
+/// tests and for anyone who wants a non-default location; otherwise
+/// `%APPDATA%\link_scrub` on Windows or `~/.config/link_scrub` elsewhere.
+/// Returns `None` only if neither the override nor the platform's home
+/// variable is set -- never panics, never touches the filesystem itself.
+pub fn user_config_dir() -> Option<std::path::PathBuf> {
+    if let Ok(dir) = std::env::var("LINK_SCRUB_CONFIG_DIR") {
+        return Some(std::path::PathBuf::from(dir));
+    }
+    if cfg!(windows) {
+        std::env::var("APPDATA")
+            .ok()
+            .map(|p| std::path::PathBuf::from(p).join("link_scrub"))
+    } else {
+        std::env::var("HOME")
+            .ok()
+            .map(|p| std::path::PathBuf::from(p).join(".config").join("link_scrub"))
+    }
+}
+
+/// Feature 5: read `extra_params.txt`/`extra_domains.txt` out of `dir` if
+/// they exist (empty string for either that doesn't), for merging into a
+/// [`TrackerLists`] via [`TrackerLists::extend_from_lines`]. Missing files
+/// are not an error -- most users will never create an overlay at all.
+pub fn read_overlay(dir: &std::path::Path) -> (String, String) {
+    let params = std::fs::read_to_string(dir.join("extra_params.txt")).unwrap_or_default();
+    let domains = std::fs::read_to_string(dir.join("extra_domains.txt")).unwrap_or_default();
+    (params, domains)
+}
+
+/// Minimal JSON string escaping (feature 1, `--json`): quotes, backslashes,
+/// and control characters. No external `serde_json` dependency -- this
+/// crate stays at zero deps by design.
+pub fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Split a URL into (before_query, query, fragment). `before_query` keeps
@@ -235,6 +325,14 @@ pub fn clean_url(url: &str, lists: &TrackerLists, max_unwrap_depth: u8) -> Clean
             })
             .collect();
         cleaned.push_str(&parts.join("&"));
+    } else if query.is_some() && removed.is_empty() {
+        // Feature 7's idempotency fuzz test found this: a bare trailing
+        // '?' with nothing removed from it was silently dropped even
+        // though nothing was removed -- a second, independent Law-2
+        // violation (python's equivalent had the same bug; fragments here
+        // were already correct since split_url distinguishes Some("")
+        // from None, which urlsplit's query field cannot).
+        cleaned.push('?');
     }
     if let Some(frag) = fragment {
         let frag_key = frag.split('=').next().unwrap_or("");
@@ -305,6 +403,22 @@ mod tests {
         let result = clean_url(url, &test_lists(), 3);
         assert!(!result.unwrapped_redirect);
         assert_eq!(result.cleaned, url);
+    }
+
+    #[test]
+    fn preserves_bare_trailing_query_and_fragment_markers() {
+        // feature 7's idempotency fuzz found this: a literal trailing '?'
+        // or '#' with nothing after it, and nothing removed, must survive
+        // byte-for-byte -- it's not our content to delete.
+        let lists = test_lists();
+        assert_eq!(clean_url("https://example.com/path?", &lists, 3).cleaned, "https://example.com/path?");
+        assert_eq!(clean_url("https://example.com/path#", &lists, 3).cleaned, "https://example.com/path#");
+        // but a '?' that only ever held tracking params is still dropped
+        // once they're removed -- that's the existing, desired cleanup.
+        assert_eq!(
+            clean_url("https://example.com/path?utm_source=x", &lists, 3).cleaned,
+            "https://example.com/path"
+        );
     }
 
     #[test]
@@ -387,6 +501,120 @@ mod tests {
                 result.cleaned
             );
         }
+    }
+
+    /// Feature 7: idempotency is a first-class, permanently-tested
+    /// guarantee -- cleaning an already-clean URL must be a no-op. Scoped
+    /// to genuinely URL-shaped input (a real scheme+host, garbage
+    /// path/query/fragment after it), not arbitrary non-URL noise: a
+    /// first pass of unstructured text that happens to end in whitespace
+    /// legitimately loses that whitespace to the leading/trailing-
+    /// copy-paste-junk trim (the same trim a real "https://example.com/a "
+    /// needs), and a second pass then has nothing left to trim -- that's
+    /// the trim doing its real job on non-URL text, not a bug. Found by
+    /// the unscoped version of this test flagging exactly that case.
+    #[test]
+    fn fuzz_url_shaped_input_is_idempotent() {
+        let lists = test_lists();
+        let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut next_u64 = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let alphabet: &[u8] = b"abcXYZ019 ?&=#%./:[]\0\\'\"<>+";
+
+        for _ in 0..2000 {
+            let len = (next_u64() % 100) as usize;
+            let bytes: Vec<u8> = (0..len).map(|_| alphabet[(next_u64() as usize) % alphabet.len()]).collect();
+            let suffix = String::from_utf8_lossy(&bytes).into_owned();
+            let candidate = format!("https://example.com/{suffix}");
+            let once = clean_url(&candidate, &lists, 3);
+            let twice = clean_url(&once.cleaned, &lists, 3);
+            assert_eq!(
+                twice.cleaned, once.cleaned,
+                "not idempotent: {candidate:?} -> {:?} -> {:?}",
+                once.cleaned, twice.cleaned
+            );
+        }
+    }
+
+    #[test]
+    fn golden_cases_are_idempotent() {
+        let raw = include_str!("../../test_fixtures/golden_cases.txt");
+        let lists = test_lists();
+        for raw_line in raw.lines() {
+            let line = raw_line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let input = line.split("|||").next().unwrap().trim();
+            let once = clean_url(input, &lists, 3);
+            let twice = clean_url(&once.cleaned, &lists, 3);
+            assert_eq!(twice.cleaned, once.cleaned, "not idempotent for input: {input}");
+        }
+    }
+
+    #[test]
+    fn extend_from_lines_adds_new_rules_without_losing_existing_ones() {
+        let mut lists = test_lists();
+        lists.extend_from_lines("mytrack\n", "mytracker.example\n");
+        let result = clean_url(
+            "https://example.com/a?utm_source=x&mytrack=1",
+            &lists,
+            3,
+        );
+        let mut removed = result.removed_params.clone();
+        removed.sort();
+        assert_eq!(removed, vec!["mytrack", "utm_source"]);
+    }
+
+    #[test]
+    fn read_overlay_returns_empty_strings_for_missing_files() {
+        let dir = std::env::temp_dir().join(format!("link_scrub_test_overlay_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let (params, domains) = read_overlay(&dir);
+        assert_eq!(params, "");
+        assert_eq!(domains, "");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_overlay_reads_real_files_when_present() {
+        let dir = std::env::temp_dir().join(format!("link_scrub_test_overlay2_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("extra_params.txt"), "mytrack\n").unwrap();
+        let (params, domains) = read_overlay(&dir);
+        assert_eq!(params, "mytrack\n");
+        assert_eq!(domains, "");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn user_config_dir_honors_env_override() {
+        std::env::set_var("LINK_SCRUB_CONFIG_DIR", "/tmp/custom_link_scrub_dir");
+        let dir = user_config_dir();
+        std::env::remove_var("LINK_SCRUB_CONFIG_DIR");
+        assert_eq!(dir, Some(std::path::PathBuf::from("/tmp/custom_link_scrub_dir")));
+    }
+
+    #[test]
+    fn json_escape_handles_quotes_backslashes_and_control_chars() {
+        assert_eq!(json_escape("a\"b\\c\nd"), "a\\\"b\\\\c\\nd");
+        assert_eq!(json_escape("tab\there"), "tab\\there");
+        assert_eq!(json_escape("plain"), "plain");
+    }
+
+    #[test]
+    fn describe_params_and_domains_cover_the_fixture() {
+        let lists = test_lists();
+        let params = lists.describe_params();
+        assert!(params.iter().any(|l| l == "exact : fbclid"));
+        assert!(params.iter().any(|l| l == "prefix: utm_*"));
+        let domains = lists.describe_domains();
+        assert!(domains.iter().any(|l| l == "exact : clickwrap.example"));
+        assert!(domains.iter().any(|l| l == "suffix: *.shim.example"));
     }
 
     #[test]

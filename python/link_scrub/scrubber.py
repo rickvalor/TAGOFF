@@ -8,11 +8,70 @@ destination back out of the wrapper's own query string.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote, urlsplit, urlunsplit
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
+def user_config_dir() -> Path | None:
+    """Feature 5: where a user's own overlay files
+    (`extra_params.txt`/`extra_domains.txt`, same format as the shipped
+    `data/` lists) live. `LINK_SCRUB_CONFIG_DIR` overrides everything, for
+    tests and for anyone who wants a non-default location; otherwise
+    `%APPDATA%\\link_scrub` on Windows or `~/.config/link_scrub` elsewhere.
+    Returns `None` only if neither the override nor the platform's home
+    variable is set -- never raises, never touches the filesystem itself.
+    """
+    override = os.environ.get("LINK_SCRUB_CONFIG_DIR")
+    if override:
+        return Path(override)
+    if os.name == "nt":
+        appdata = os.environ.get("APPDATA")
+        return Path(appdata) / "link_scrub" if appdata else None
+    home = os.environ.get("HOME")
+    return Path(home) / ".config" / "link_scrub" if home else None
+
+
+def read_overlay(dir_: Path) -> tuple[str, str]:
+    """Feature 5: read `extra_params.txt`/`extra_domains.txt` out of
+    `dir_` if they exist (empty string for either that doesn't), for
+    merging via `TrackerLists.extend_from_lines`. Missing files are not an
+    error -- most users will never create an overlay at all.
+    """
+    params_path = dir_ / "extra_params.txt"
+    domains_path = dir_ / "extra_domains.txt"
+    params = params_path.read_text(encoding="utf-8") if params_path.exists() else ""
+    domains = domains_path.read_text(encoding="utf-8") if domains_path.exists() else ""
+    return params, domains
+
+def _resolve_data_dir() -> Path:
+    """Find the tracker-list data directory.
+
+    Two cases, tried in order:
+    1. Installed wheel: `setup.py`'s build step copies the canonical
+       `data/*.txt` into `link_scrub/data/` at build time, so a real,
+       non-editable install is self-contained (round 16 fix -- the
+       original design only worked for an editable install, since it
+       always looked two levels up at the source tree).
+    2. Editable/source-checkout install: read the canonical `data/`
+       directory directly, two levels up, so edits to it apply
+       immediately with no rebuild -- this is the actual single source
+       of truth during development.
+    """
+    packaged = Path(__file__).resolve().parent / "data"
+    if (packaged / "tracking_params.txt").exists():
+        return packaged
+    source_tree = Path(__file__).resolve().parents[2] / "data"
+    if (source_tree / "tracking_params.txt").exists():
+        return source_tree
+    raise FileNotFoundError(
+        "Could not find tracking_params.txt in either the packaged location "
+        f"({packaged}) or the source-tree location ({source_tree})."
+    )
+
+
+DATA_DIR = _resolve_data_dir()
 
 # Query-param names that, across known link-shim services, hold the real
 # destination URL the shim is wrapping.
@@ -33,46 +92,52 @@ class TrackerLists:
         cls,
         params_path: Path | None = None,
         domains_path: Path | None = None,
+        include_overlay: bool = True,
     ) -> "TrackerLists":
         params_path = params_path or (DATA_DIR / "tracking_params.txt")
         domains_path = domains_path or (DATA_DIR / "tracking_domains.txt")
-        return cls.from_lines(
+        lists = cls.from_lines(
             params_path.read_text(encoding="utf-8"),
             domains_path.read_text(encoding="utf-8"),
         )
+        if include_overlay:
+            dir_ = user_config_dir()
+            if dir_ is not None:
+                extra_params, extra_domains = read_overlay(dir_)
+                lists.extend_from_lines(extra_params, extra_domains)
+        return lists
 
     @classmethod
     def from_lines(cls, params_text: str, domains_text: str) -> "TrackerLists":
-        params: set[str] = set()
-        prefixes: list[str] = []
+        lists = cls(params=set(), param_prefixes=[], redirect_domains=set(), redirect_domain_suffixes=[])
+        lists.extend_from_lines(params_text, domains_text)
+        return lists
+
+    def extend_from_lines(self, params_text: str, domains_text: str) -> None:
+        """Feature 5 (user config overlay): merge more rules into an
+        existing `TrackerLists`, same text format as `from_lines`. Used to
+        layer a user's own `extra_params.txt`/`extra_domains.txt` on top of
+        the shipped lists without ever touching the shipped files.
+        """
         for raw in params_text.splitlines():
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
             lower = line.lower()
             if lower.endswith("*"):
-                prefixes.append(lower[:-1])
+                self.param_prefixes.append(lower[:-1])
             else:
-                params.add(lower)
+                self.params.add(lower)
 
-        domains: set[str] = set()
-        suffixes: list[str] = []
         for raw in domains_text.splitlines():
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
             lower = line.lower()
             if lower.startswith("*."):
-                suffixes.append(lower[2:])
+                self.redirect_domain_suffixes.append(lower[2:])
             else:
-                domains.add(lower)
-
-        return cls(
-            params=params,
-            param_prefixes=prefixes,
-            redirect_domains=domains,
-            redirect_domain_suffixes=suffixes,
-        )
+                self.redirect_domains.add(lower)
 
     def is_tracking_param(self, key: str) -> bool:
         lower = key.lower()
@@ -85,6 +150,23 @@ class TrackerLists:
         if lower in self.redirect_domains:
             return True
         return any(lower == suf or lower.endswith(f".{suf}") for suf in self.redirect_domain_suffixes)
+
+    def describe_params(self) -> list[str]:
+        """Feature 3 (`--list-params`): human-readable lines describing
+        every loaded param rule, sorted, so a user can audit exactly what
+        will be stripped before trusting the tool with a real link.
+        """
+        lines = [f"exact : {p}" for p in sorted(self.params)]
+        lines += [f"prefix: {p}*" for p in sorted(self.param_prefixes)]
+        return lines
+
+    def describe_domains(self) -> list[str]:
+        """Feature 3 (`--list-domains`): same idea as `describe_params`,
+        for the redirector-domain list.
+        """
+        lines = [f"exact : {d}" for d in sorted(self.redirect_domains)]
+        lines += [f"suffix: *.{d}" for d in sorted(self.redirect_domain_suffixes)]
+        return lines
 
 
 def _parse_query_raw(query: str) -> list[tuple[str, str | None]]:
@@ -168,9 +250,31 @@ def _clean_url_inner(url: str, lists: TrackerLists, max_unwrap_depth: int) -> Cl
             kept.append((k, v))
 
     fragment = parts.fragment
-    if fragment and lists.is_tracking_param(fragment.split("=", 1)[0]):
+    fragment_was_tracking = bool(fragment) and lists.is_tracking_param(fragment.split("=", 1)[0])
+    if fragment_was_tracking:
         fragment = ""
 
-    query = "&".join(k if v is None else f"{k}={v}" for k, v in kept)
-    cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, query, fragment))
+    # Feature 7's idempotency fuzz test found this (and it's really a
+    # second Law-2 violation, not just an idempotency bug): urlunsplit()
+    # drops a bare trailing '?' or '#' whenever nothing follows it, even
+    # when NOTHING was removed -- so "https://x.com/path?" silently became
+    # "https://x.com/path" despite zero tracking params touched. Detect
+    # whether the marker was actually present in the input and preserve a
+    # bare one when nothing was removed from it.
+    before_fragment = current.split("#", 1)[0]
+    had_query_marker = "?" in before_fragment
+    had_fragment_marker = "#" in current
+
+    prefix = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    cleaned = prefix
+    if kept:
+        cleaned += "?" + "&".join(k if v is None else f"{k}={v}" for k, v in kept)
+    elif had_query_marker and not removed:
+        cleaned += "?"
+
+    if fragment:
+        cleaned += "#" + fragment
+    elif had_fragment_marker and not fragment_was_tracking:
+        cleaned += "#"
+
     return CleanResult(original=url, cleaned=cleaned, unwrapped_redirect=unwrapped, removed_params=removed)

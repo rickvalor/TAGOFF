@@ -1,0 +1,38 @@
+name: "link-scrub check"
+description: "Fail a workflow if any URL in given files/paths contains tracking params or a wrapped link-shim redirector."
+branding:
+  icon: "link-2"
+  color: "blue"
+
+inputs:
+  paths:
+    description: "Space-separated file paths/globs to scan (passed to `grep -rl`, then each match scanned). Defaults to the whole checkout."
+    required: false
+    default: "."
+  python-version:
+    description: "Python version to install link-scrub with."
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    # Installs from THIS action's own repo root (pyproject.toml/setup.py
+    # there, not nested in python/ -- see round 18 of
+    # docs/CRITIQUE_LEDGER.md for why both exist), not from the consuming
+    # repo being checked -- `github.action_path` is where Actions checks
+    # this repo out to run the action, independent of the consumer's own
+    # checkout.
+    - run: pip install "${{ github.action_path }}"
+      shell: bash
+    - run: |
+        files=$(grep -rlE '.' ${{ inputs.paths }} --include='*' 2>/dev/null | grep -v '/\.git/' || true)
+        if [ -z "$files" ]; then
+          echo "no files to scan"
+          exit 0
+        fi
+        link-scrub-precommit $files
+      shell: bash

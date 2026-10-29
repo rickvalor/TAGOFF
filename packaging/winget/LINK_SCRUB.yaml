@@ -1,0 +1,21 @@
+# TEMPLATE -- not a working winget manifest yet. See packaging/README.md
+# for exactly what's missing (a released binary + a real hash + a
+# separate PR into microsoft/winget-pkgs, which this repo doesn't control
+# alone). This is also an abbreviated single-file sketch; a real winget
+# submission needs the full three-file manifest set (version/installer/
+# locale) per https://github.com/microsoft/winget-pkgs's schema.
+PackageIdentifier: OWNER.LinkScrub
+PackageVersion: 0.1.0
+PackageName: link-scrub
+Publisher: OWNER
+License: MIT
+ShortDescription: Strip tracking query params from URLs and unwrap link-shim redirectors.
+Installers:
+  - Architecture: x64
+    InstallerType: zip
+    # TODO: replace with the real release asset URL once one exists.
+    InstallerUrl: https://github.com/OWNER/LINK_SCRUB/releases/download/vX.Y.Z/link_scrub-x86_64-pc-windows-msvc.zip
+    # TODO: replace with the real SHA256 of that asset.
+    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000"
+ManifestType: singleton
+ManifestVersion: 1.6.0

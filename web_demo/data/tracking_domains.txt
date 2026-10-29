@@ -1,0 +1,25 @@
+# Known "link-shim" redirector hosts, one per line. These are domains that
+# wrap a real destination URL inside one of their OWN query params (named
+# url/u/dest/destination/target/redirect/r/to/link -- see DEST_PARAM_NAMES
+# in both implementations) purely to log that you clicked through, with no
+# content of their own at that path.
+#
+# This list is used ONLY to decide whether to read the destination back out
+# of the wrapper's own query string -- never to fetch anything over the
+# network. A line starting with '*.' matches that domain and any subdomain
+# of it (e.g. "*.safelinks.protection.outlook.com" matches both
+# "safelinks.protection.outlook.com" and "nam12.safelinks.protection.outlook.com").
+# Comments start with '#'.
+
+# Facebook's outbound link shim: l.facebook.com/l.php?u=<encoded>&h=...
+l.facebook.com
+lm.facebook.com
+
+# Reddit's outbound link wrapper: out.reddit.com/t3_xxx/?url=<encoded>
+out.reddit.com
+
+# Slack's link-click redirector: slack-redir.net/link?url=<encoded>
+slack-redir.net
+
+# Microsoft Defender/Exchange "Safe Links": <tenant>.safelinks.protection.outlook.com/?url=<encoded>&data=...
+*.safelinks.protection.outlook.com

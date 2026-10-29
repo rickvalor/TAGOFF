@@ -18,16 +18,19 @@ dev = ["pytest"]
 [project.scripts]
 link-scrub = "link_scrub.cli:main"
 link-scrub-watch = "link_scrub.clipboard_watch:main"
+link-scrub-bookmarks = "link_scrub.bookmarks:main"
+link-scrub-md = "link_scrub.markdown:main"
+link-scrub-precommit = "link_scrub.precommit_hook:main"
 
 [tool.setuptools]
 packages = ["link_scrub"]
 
 [tool.setuptools.package-data]
-link_scrub = ["py.typed"]
+link_scrub = ["py.typed", "data/*.txt"]
 
-# The shipped tracker lists live at ../data relative to this package (see
-# scrubber.py's DATA_DIR), not inside the package itself -- an editable
-# install (`pip install -e .`) keeps that relative path valid since it
-# points back at the source tree. A non-editable wheel install would NOT
-# carry data/ along; this package is meant to be run from a source
-# checkout, not redistributed as a standalone wheel, until that's fixed.
+# The canonical tracker lists live at ../data (shared with rust_core).
+# setup.py's custom build_py step copies a snapshot into link_scrub/data/
+# at build time, so a real (non-editable) wheel is self-contained -- see
+# scrubber.py's _resolve_data_dir() for the two-case lookup, and round 16
+# of docs/CRITIQUE_LEDGER.md for why this exists (the original design only
+# worked for an editable install).

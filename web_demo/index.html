@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>link_scrub -- live WASM demo</title>
+<meta name="description" content="Strip tracking params from a URL, entirely client-side, via the same Rust core link_scrub ships as a CLI.">
+<style>
+  :root { --bg: #fafafa; --fg: #1a1a1a; --card: #fff; --border: #ddd; --accent: #2563eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15161a; --fg: #eaeaea; --card: #1e1f24; --border: #35363c; --accent: #60a5fa; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 16px;
+  }
+  main { max-width: 720px; width: 100%; padding-top: 48px; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: #888; margin-top: 0; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  input {
+    width: 100%; padding: 10px 12px; font-size: 1rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+  }
+  button {
+    margin-top: 12px; padding: 10px 18px; font-size: 1rem; border-radius: 8px;
+    border: none; background: var(--accent); color: white; cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  #output {
+    margin-top: 16px; padding: 12px; border-radius: 8px; background: var(--bg);
+    border: 1px dashed var(--border); min-height: 1.4em; word-break: break-all;
+    font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem;
+  }
+  #status { font-size: 0.85rem; color: #888; margin-top: 10px; }
+  footer { margin-top: 24px; font-size: 0.8rem; color: #888; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>link_scrub</h1>
+  <p class="sub">Strip tracking params and unwrap link-shim redirectors -- same Rust core as the CLI, compiled to WASM, running entirely in this tab.</p>
+  <div class="card">
+    <input id="url-input" type="text" placeholder="Paste a URL, e.g. one with ?utm_source=..." autofocus>
+    <button id="clean-button" disabled>Clean</button>
+    <div id="output"></div>
+    <div id="status">Loading WASM module...</div>
+  </div>
+  <footer>
+    Zero network calls beyond this page load -- nothing you type here is sent anywhere.
+    Source, CLI, test suite, and the critique ledger this went through: see the repo this page is served from.
+  </footer>
+</main>
+<script src="demo.js"></script>
+</body>
+</html>

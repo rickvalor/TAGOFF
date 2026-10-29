@@ -1,13 +1,22 @@
 # LINK_SCRUB — Critique Ledger
 
-14 rounds of critique -> fix -> test, aimed at making this launchable (usable
+19 rounds of critique -> fix -> test, aimed at making this launchable (usable
 by someone other than the author) and portfolio-presentable (a stranger can
 look at the repo and trust it). Same discipline as the MGC pass ledger: each
 round names one real target, states what was actually found (or "no finding"
 if nothing broke), the fix, and how it was verified.
 
+**Rounds 16-19** (added in a second pass, building 15 new features and
+fixing real bugs the build process surfaced): feature list and what each
+one's construction actually found is summarized at the end of this file,
+below round 19.
+
 | # | target | finding | fix | verified |
 |---|--------|---------|-----|----------|
+| 19 | feature 13 (GitHub Action) + feature 14 (Homebrew/Scoop/winget manifests) | neither can be fully verified from here: no `act` tool to run a composite action locally, and no GitHub Release exists yet to source real binary URLs/checksums for the three package manifests | built `action.yml` reusing the now-fixed root install path from round 18; verified its actual shell logic (file-discovery + hook invocation) standalone, left the GitHub-Actions-specific wiring itself as an honest, documented unverified-until-pushed gap, same treatment round 7 gave the CI workflow. Wrote the three packaging manifests as clearly-labeled TEMPLATES with placeholder URLs/checksums and a `packaging/README.md` stating exactly what's missing and in what order, rather than letting them look functional when they can't be yet. | YAML/JSON syntax-validated for all three manifest files and `action.yml`; shell logic verified standalone end-to-end |
+| 18 | building feature 12 (`.pre-commit-hooks.yaml`, `language: python`) | confirmed real by actually running it: pre-commit's `language: python` hooks work by `pip install`-ing the hook repo's ROOT, but the actual package lives in `python/link_scrub/` -- `pip install .` from the repo root failed outright ("Neither 'setup.py' nor 'pyproject.toml' found") before this was caught | added a root-level `pyproject.toml` + `setup.py` (distinct from, and kept in sync with, `python/pyproject.toml`/`setup.py`) whose only job is making `pip install .` work from the repo root, mirroring the same data-file build-copy hook at the corrected relative path | installed into a throwaway venv via `pip install .` from the repo root (not editable, no relation to the dev install), ran the installed `link-scrub-precommit` entry point against a real file with a tracking URL, got the correct finding and exit code 1; cleaned up a stray `build/` directory this surfaced and added it to `.gitignore` |
+| 17 | building feature 7 (idempotency as a first-class, tested guarantee: `clean(clean(x)) == clean(x)`) | the test itself found two REAL bugs, in BOTH implementations: (1) `urlunsplit`/the hand-rolled Rust assembly silently dropped a bare trailing `?` or `#` even when nothing was removed from it -- an independent Law-2 violation ("https://x.com/path?" lost its `?` for no reason), which (2) made idempotency fail on a second pass once that marker was gone and trailing whitespace that used to precede it became newly-exposed-then-trimmed. Also found: pure non-URL noise (no scheme/host at all) isn't a case the idempotency law was ever meant to cover -- `.strip()`'s copy-paste-whitespace trim legitimately isn't idempotent on random text that was never a URL to begin with. | fixed the real bug: preserve a bare `?`/`#` whenever its marker was present in the input and nothing was removed from it, in both languages (Rust's fragment side was already correct by construction; only the query side needed it). Scoped the fuzz idempotency test to genuinely URL-shaped input (`https://example.com/<random suffix>`) rather than arbitrary byte soup, with the reasoning written into the test itself, not left implicit. | new explicit regression test in both languages for the bare-marker case; full suites green after the fix: Rust 25/25, Python 42/42 |
+| 16 | Python wheel self-containedness -- flagged as a known gap since round 4, finally addressed before a real GitHub push | confirmed real: a non-editable install (`pip wheel .` then install into a fresh venv) could not find `data/tracking_params.txt` at all, since `DATA_DIR` always looked two directories up at the source tree | added `python/setup.py` (a `build_py` subclass that copies `../data/*.txt` into `link_scrub/data/` at build time -- the canonical files are still only ever hand-edited in one place), updated `scrubber.py`'s data-dir lookup to try the packaged location first, the source-tree location second | built a real wheel, listed its contents (`link_scrub/data/*.txt` present), installed it into a throwaway venv with no relation to the source tree, ran `link-scrub` from there successfully; reinstalled the dev editable install afterward, full suite still 27/27 |
 | 1 | edge-case correctness sweep (15 hand-picked inputs run against both implementations: no-query, uppercase params/hosts, duplicate params, empty/whitespace input, non-URL text, explicit-empty-value params, fragments) | real bug in BOTH implementations: `?a=&b=1` (explicit empty value) round-tripped to `?a&b=1` -- lost the `=`, violating the README's "byte-identical on anything untouched" law. Everything else in the sweep was already correct: case-insensitive param/host matching, fragment tracking-vs-anchor distinction, duplicate params, non-URL text passed through unchanged with no exception. | changed `parse_query`'s value type from a bare string to "no `=` present" vs "`=` present, possibly empty" (`Option<String>` in Rust, `str \| None` in Python) and threaded that through the dest-param lookup and the output join in both languages | 1 new test per language (`preserves_explicit_empty_value_params`); full suites green, 7/7 each |
 | 14 | final end-to-end sanity pass: full rebuild, full test run, CI yaml re-check, `git status` audit for leaked build artifacts | real finding: `pip install -e .` creates `python/link_scrub.egg-info/`, which `.gitignore` never covered -- it was sitting untracked, one `git add -A` away from getting committed | added `*.egg-info/`, `/python/build/`, `/python/dist/` to `.gitignore` | clean `git status` after; full rebuild + full suite, both green: Rust 16/16 (9 lib + 7 CLI), Python 27/27 |
 
@@ -26,3 +35,32 @@ if nothing broke), the fix, and how it was verified.
 | 4 | packaging -- no `pyproject.toml` existed; only runnable via `python -m link_scrub` from inside `python/` | real blocker for "launch as usable": not installable, no console command. First attempt (`readme = "../README.md"`) failed outright -- setuptools refuses a readme path outside the package root being built. | added `python/pyproject.toml` (console scripts `link-scrub`/`link-scrub-watch`, optional `[clipboard]`/`[dev]` extras) + a local `python/README.md` pointing back at the repo root one; documented in-file that this only works as an editable install (`pip install -e .`) since the shared `data/` lists live one level up from the package, not inside it -- a built wheel would not carry them | `pip install -e .` succeeds; `link-scrub` command works from an unrelated cwd (`C:\Users\...\Projects`, not `python/`); full suite still 25/25 after install |
 | 3 | robustness under adversarial input (malformed `%` sequences, null bytes, 2MB strings, 200k-param queries, nested wrapping, non-ASCII, IPv6 literals) | manual spot-check of both implementations was clean, but a permanent seeded-fuzz test added to codify that caught a REAL bug the manual check missed: Python's stdlib `urlsplit()` raises `ValueError: Invalid IPv6 URL` on a lone unbalanced `[` or `]` in the host, instead of just... splitting it. Rust's hand-rolled parser has no such failure mode. | wrapped `clean_url` in Python in a `try/except ValueError`, falling back to "pass through unchanged" -- same treatment as any other not-really-a-URL input | explicit regression test + the 2000-iteration seeded fuzz now in both languages' permanent suites; Rust 9/9, Python 25/25 |
 | 2 | cross-implementation parity -- was only checked by eyeballing two independently-written test files | added `tests/golden_cases.txt` (14 cases, `\|\|\|`-delimited, zero-dependency to parse) loaded by BOTH `rust_core`'s `golden_cases_match` test and a new `python/tests/test_golden_cases.py`; caught one mistake in my own golden-file expectation on first run (both implementations agreed with each other, disagreed with my hand-written oracle) | fixed the golden file, not the code -- it's real evidence the two implementations already agreed | both suites green: Rust 8/8, Python 22/22 |
+
+## 15 new features (added alongside rounds 16-19)
+
+Built as real, tested code in both languages where it mattered, not just
+described. Four of these (marked *) surfaced genuine bugs during
+construction, already folded into the rounds above rather than listed
+twice:
+
+1. `--json` structured output (both languages)
+2. `--stats` batch summary: counts, top removed params, redirectors unwrapped (both)
+3. `--list-params`/`--list-domains` introspection -- audit what will be stripped before trusting it (both)
+4. `--check` CI/pre-commit exit-code gate (both)
+5. User config overlay (`extra_params.txt`/`extra_domains.txt`, env-var-locatable config dir) -- add rules without touching the shipped lists (both)
+6. Shell completions: bash, zsh, PowerShell
+7. Idempotency as a first-class, permanently-tested guarantee* -- found round 17's bare-`?`/`#` bug (both)
+8. Browser bookmarks cleaner (Chrome/Edge JSON + universal Netscape HTML export)* -- found the `&amp;`-escaping bug (Python)
+9. Markdown link cleaner (inline/autolink/reference-style, all three forms) (Python)
+10. `--input`/`--output` file batch mode, atomic writes, streaming preserved for the default stdout path (both)
+11. `--diff` dry-run mode (both)
+12. `.pre-commit-hooks.yaml`* -- found round 18's root-installability gap (Python)
+13. GitHub Action (`action.yml`) wrapping the CLI
+14. Homebrew/Scoop/winget manifest templates, honestly marked not-yet-functional pending a real release
+15. WASM build of the Rust core (separate zero-added-dependency wrapper crate, no `wasm-bindgen`) + a static client-side browser demo (`web_demo/`) -- verified end-to-end via Node's WebAssembly runtime and confirmed all static assets serve correctly over HTTP
+
+**Closing tally for this pass:** test count went from 43 (16+27) to 88
+(27 Rust + 61 Python). 4 more real bugs found (rounds 16-19) on top of the
+6 from the first 14 rounds -- 10 total across both passes, none of them
+found by guessing, all of them found by building something and testing it
+for real.

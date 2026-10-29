@@ -55,6 +55,18 @@ def test_preserves_explicit_empty_value_params():
     assert result.cleaned == url
 
 
+def test_preserves_bare_trailing_query_and_fragment_markers():
+    # feature 7's idempotency fuzz found this: a literal trailing '?' or
+    # '#' with nothing after it, and nothing removed, must survive
+    # byte-for-byte -- it's not our content to delete.
+    lists = _lists()
+    assert clean_url("https://example.com/path?", lists).cleaned == "https://example.com/path?"
+    assert clean_url("https://example.com/path#", lists).cleaned == "https://example.com/path#"
+    # but a '?' that only ever held tracking params is still dropped once
+    # they're removed -- that's the existing, desired cleanup.
+    assert clean_url("https://example.com/path?utm_source=x", lists).cleaned == "https://example.com/path"
+
+
 def test_malformed_ipv6_bracket_does_not_raise():
     # round 3's fuzz test found this: urlsplit() raises ValueError on an
     # unbalanced '['/']' in the host instead of returning. Must be treated

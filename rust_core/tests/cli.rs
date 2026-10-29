@@ -69,6 +69,50 @@ fn verbose_flag_reports_removed_params_on_stderr() {
 }
 
 #[test]
+fn diff_mode_shows_minus_plus_for_changed_and_unchanged_marker_otherwise() {
+    let output = Command::new(bin())
+        .args(["--diff", "https://example.com/a?utm_source=x", "https://example.com/b?id=1"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("- https://example.com/a?utm_source=x"));
+    assert!(stdout.contains("+ https://example.com/a"));
+    assert!(stdout.contains("unchanged: https://example.com/b?id=1"));
+}
+
+#[test]
+fn input_and_output_files_round_trip() {
+    let dir = std::env::temp_dir().join(format!("link_scrub_cli_io_test_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let input_path = dir.join("in.txt");
+    let output_path = dir.join("out.txt");
+    std::fs::write(&input_path, "https://example.com/a?utm_source=x\nhttps://example.com/b?id=1\n").unwrap();
+
+    let output = Command::new(bin())
+        .arg("--input")
+        .arg(&input_path)
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+
+    let written = std::fs::read_to_string(&output_path).unwrap();
+    assert_eq!(written, "https://example.com/a\nhttps://example.com/b?id=1\n");
+
+    // no leftover temp file from the atomic-write dance
+    let leftovers: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_name().to_string_lossy().starts_with(".link_scrub_tmp_"))
+        .collect();
+    assert!(leftovers.is_empty());
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn reads_multiple_urls_from_stdin_when_no_argv_urls_given() {
     let mut child = Command::new(bin())
         .stdin(Stdio::piped())

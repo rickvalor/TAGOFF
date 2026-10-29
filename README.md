@@ -13,9 +13,12 @@ including an Amazon product link and a wrapped Facebook share.
 
 Zero network calls, two independent implementations tested against one
 shared set of golden cases to guarantee they agree
-(see [`docs/CRITIQUE_LEDGER.md`](docs/CRITIQUE_LEDGER.md) for the 14-round
-hardening pass this went through — real bugs found and fixed, not just a
-changelog).
+(see [`docs/CRITIQUE_LEDGER.md`](docs/CRITIQUE_LEDGER.md) for the 19-round
+hardening pass this went through — 10 real bugs found and fixed, not just
+a changelog). There's also a live, zero-network **browser demo** of the
+Rust core compiled to WASM — see `web_demo/` (open `index.html` via a
+local static server, e.g. `python -m http.server`, after running
+`web_demo/build.sh`).
 
 Two parallel implementations, kept in lockstep against one shared data
 source:
@@ -23,16 +26,26 @@ source:
 ```
 rust_core/      zero-dependency Rust library + CLI binary (fast path, embeds
                 the lists at compile time)
-python/         pure-Python package (link_scrub) + CLI (easy to run anywhere,
-                no build step)
-data/           the one shared source of truth both sides load:
+python/         pure-Python package (link_scrub) + CLI + extra tools
+                (bookmarks cleaner, Markdown link cleaner, pre-commit hook)
+wasm_demo/      raw-C-ABI WASM wrapper around rust_core (no wasm-bindgen,
+                stays dependency-free); verify.mjs proves it end-to-end via Node
+web_demo/       static, client-side browser demo -- build.sh stages the wasm
+                binary + data files, then it's just index.html + demo.js
+data/           the one shared source of truth both Rust/Python sides load:
                   tracking_params.txt   -- tracking query-param names/prefixes
                   tracking_domains.txt  -- known link-shim redirector hosts
 test_fixtures/  golden_cases.txt -- shared test vectors both languages' real
                 test suites (rust_core/tests/, python/tests/) load; not a
                 suite of its own
+completions/    bash/zsh/PowerShell shell completions
+packaging/      Homebrew/Scoop/winget manifest TEMPLATES -- not yet
+                functional, see packaging/README.md for why
 scripts/        bench.py -- cross-language benchmark
 docs/           CRITIQUE_LEDGER.md, EXAMPLES.md, BENCHMARKS.md
+action.yml, .pre-commit-hooks.yaml, pyproject.toml/setup.py (root)
+                -- let other repos consume this one as a CI Action or a
+                pre-commit hook; see the "Features" section below
 ```
 
 ## Laws (binding)
@@ -86,9 +99,20 @@ pip install -e ".[clipboard]"
 link-scrub-watch
 ```
 
-This is an editable install (`-e`) on purpose: the shipped `data/` lists
-live one level above the Python package, not inside it, so a built/
-published wheel would not carry them yet (tracked as a known gap).
+`-e` is for development convenience (edits to `data/*.txt` apply without
+reinstalling) -- a real, non-editable `pip install .`/wheel is also fully
+self-contained now (`setup.py` copies the lists in at build time; see
+round 16 of the critique ledger). Extra tools, same install:
+
+```powershell
+link-scrub-bookmarks path/to/Bookmarks          # Chrome/Edge JSON, or a Netscape Bookmarks.html export
+link-scrub-md path/to/doc.md                    # cleans every link in a Markdown file
+link-scrub-precommit file1 file2 ...             # exits 1 if any file has a tracking-laden URL
+```
+
+All four of `--write`/`--output`/dry-run default/`--diff` behave the same
+way across `link-scrub`, `link-scrub-bookmarks`, and `link-scrub-md`:
+dry-run by default, `--write` makes a `.bak` backup first.
 
 Running the tests (also installs `pytest` via the `dev` extra):
 
@@ -109,15 +133,41 @@ win. Python picks up edits immediately; Rust needs a rebuild. Update
 languages' test suites load that one file, so it's the fastest way to prove
 they still agree.
 
+## Features
+
+Both `link-scrub` (Python) and `link_scrub` (Rust) share the same flag
+surface: `-v/--verbose`, `--json`, `--diff`, `--stats`, `--check` (exit 1
+if anything had tracking — a CI/pre-commit gate), `--list-params`/
+`--list-domains` (audit the rules before trusting them), `--input FILE`/
+`--output FILE` (atomic write). A user config overlay
+(`extra_params.txt`/`extra_domains.txt` in `%APPDATA%\link_scrub` or
+`~/.config/link_scrub`, overridable via `LINK_SCRUB_CONFIG_DIR`) lets you
+add your own rules without touching the shipped lists. Shell completions
+for bash/zsh/PowerShell are in `completions/`. Three more tools ship with
+the Python package: a browser bookmarks cleaner, a Markdown link cleaner,
+and a pre-commit-hook-compatible file scanner (also wired up as a GitHub
+Action in `action.yml`) — see "Python: install & run" above.
+
 ## Status
 
-- Correctness: both implementations pass the same 14+ golden cases plus a
-  2000-iteration seeded fuzz with zero crashes/exceptions (see the
-  [critique ledger](docs/CRITIQUE_LEDGER.md)).
-- Packaging: Python installs via `pip install -e .` with console commands;
-  Rust via `cargo build --release`. Neither is published anywhere yet.
+- Correctness: both implementations pass the same golden cases plus a
+  2000-iteration seeded fuzz with zero crashes/exceptions, including an
+  idempotency guarantee (`clean(clean(x)) == clean(x)`) tested the same
+  way (see the [critique ledger](docs/CRITIQUE_LEDGER.md) — 19 rounds, 10
+  real bugs found and fixed across two passes).
+- Packaging: Python installs via `pip install -e .` (dev) or `pip install .`
+  (real, self-contained wheel) with 5 console commands; Rust via
+  `cargo build --release`. A root-level `pyproject.toml`/`setup.py`
+  (distinct from `python/`'s) makes `pip install .` work from the repo
+  root too, which `.pre-commit-hooks.yaml` and `action.yml` both need.
+  Nothing is published to PyPI/crates.io/a package manager yet.
+- A static, zero-network browser demo of the Rust core (compiled to WASM,
+  no `wasm-bindgen`) lives in `web_demo/`, verified end-to-end via Node
+  before being wired into the actual page.
 - Known gaps, not yet built: a PyO3/maturin binding (today the two
   implementations don't call each other — see
   [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) for what that costs), a
-  non-editable distributable Python wheel, a browser extension front-end.
+  browser extension (the WASM demo is a static page, not an extension
+  that intercepts clicks), real binary releases (so the `packaging/`
+  manifests can go from templates to working).
 - License: [MIT](LICENSE).

@@ -1,0 +1,104 @@
+# Tracking query-parameter names, one per line.
+# Lines starting with '#' are comments. A trailing '*' means "match this
+# prefix" (e.g. "utm_*" matches utm_source, utm_medium, utm_anything).
+# Everything else is matched exactly, case-insensitively.
+#
+# Edit this file freely -- both the Rust core and the Python package load
+# it at runtime/compile-time from this one place. Keep entries sorted
+# within their section so duplicates are easy to spot.
+
+# -- Google / Google Ads / Google Analytics --
+utm_*
+gclid
+gclsrc
+dclid
+gbraid
+wbraid
+_ga
+_gl
+srsltid
+
+# -- Meta / Facebook / Instagram --
+fbclid
+fb_action_ids
+fb_action_types
+fb_ref
+fb_source
+igshid
+igsh
+
+# -- Microsoft / Bing / LinkedIn --
+msclkid
+li_fat_id
+soc_src
+soc_trk
+
+# -- Twitter / X --
+twclid
+__twitter_impression
+
+# -- TikTok / Pinterest / Snapchat --
+ttclid
+epik
+sc_cid
+
+# -- Yandex / Baidu / Alibaba --
+yclid
+spm
+scm
+
+# -- Email marketing platforms --
+mc_cid
+mc_eid
+mkt_tok
+_hsenc
+_hsmi
+hsCtaTracking
+elqTrackId
+elqaid
+elqat
+vero_id
+vero_conv
+oly_enc_id
+oly_anon_id
+
+# -- Analytics / web-analytics suites (Matomo/Piwik) --
+pk_campaign
+pk_kwd
+pk_source
+pk_medium
+pk_content
+
+# -- Amazon (found as a real gap in round 11 of the critique ledger: an
+#    Amazon product link's pd_rd_*/pf_rd_* recommendation-widget tracking
+#    went completely untouched, only its "ref" param was caught) --
+pd_rd_*
+pf_rd_*
+ascsubtag
+linkCode
+linkId
+
+# -- Generic / cross-platform click-tracking --
+# KNOWN FALSE-POSITIVE RISK (round 9 of the critique ledger): "ref" is
+# overwhelmingly used for referral/attribution tracking across the web, but
+# it is also a real, functional param on some sites -- e.g. a post-login
+# redirect target (?ref=/dashboard). Stripping it there doesn't just lose
+# attribution, it can break the redirect. Kept because the tracking use is
+# far more common in practice, but flagged here rather than left silent.
+ref
+ref_src
+ref_url
+trk
+trkCampaign
+trkEmail
+icid
+cmpid
+wt_zmc
+s_cid
+ncid
+rb_clickid
+# KNOWN FALSE-POSITIVE RISK: "si" is YouTube/Spotify's share-tracking id,
+# but it's also a generic enough 2-letter token (session id, start index,
+# site id, ...) that some unrelated API could legitimately use it. Same
+# tradeoff as "ref" above -- kept, flagged.
+si

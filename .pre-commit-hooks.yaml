@@ -1,0 +1,18 @@
+# Makes this repo usable as a pre-commit (https://pre-commit.com) hook
+# source from any other repo:
+#
+#   repos:
+#     - repo: https://github.com/<owner>/LINK_SCRUB
+#       rev: <tag or commit>
+#       hooks:
+#         - id: link-scrub-check
+#
+# `language: python` means pre-commit builds its own isolated venv and
+# installs this package into it via pyproject.toml -- nothing extra to
+# configure on the consuming repo's side.
+- id: link-scrub-check
+  name: link-scrub (no tracking params in links)
+  description: Fails if any URL in a changed file contains tracking query params or a wrapped link-shim redirector.
+  entry: link-scrub-precommit
+  language: python
+  types: [text]

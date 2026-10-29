@@ -1,0 +1,24 @@
+{
+    "//": "TEMPLATE -- not a working manifest yet. See packaging/README.md for exactly what's missing (a released binary + a real hash).",
+    "version": "0.1.0",
+    "description": "Strip tracking query params from URLs and unwrap link-shim redirectors",
+    "homepage": "https://github.com/OWNER/LINK_SCRUB",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/OWNER/LINK_SCRUB/releases/download/vX.Y.Z/link_scrub-x86_64-pc-windows-gnu.zip",
+            "hash": "0000000000000000000000000000000000000000000000000000000000000",
+            "bin": "link_scrub.exe"
+        }
+    },
+    "checkver": {
+        "github": "https://github.com/OWNER/LINK_SCRUB"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/OWNER/LINK_SCRUB/releases/download/v$version/link_scrub-x86_64-pc-windows-gnu.zip"
+            }
+        }
+    }
+}

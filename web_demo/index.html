@@ -3,55 +3,135 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tagoff -- live WASM demo</title>
-<meta name="description" content="Strip tracking params from a URL, entirely client-side, via the same Rust core tagoff ships as a CLI.">
+<title>tagoff</title>
+<meta name="description" content="Removes tracking parameters from links. Runs entirely on your device, so nothing you paste here is sent anywhere.">
+<meta property="og:title" content="tagoff">
+<meta property="og:description" content="Removes tracking parameters from links, entirely on your device.">
+<meta name="theme-color" content="#EEF0EC">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><rect width=%2224%22 height=%2224%22 rx=%224%22 fill=%22%230E6F64%22/><rect x=%225%22 y=%2211%22 width=%2214%22 height=%224%22 rx=%221%22 fill=%22%23EEF0EC%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #fafafa; --fg: #1a1a1a; --card: #fff; --border: #ddd; --accent: #2563eb; }
+  :root {
+    --paper: #EEF0EC; --ink: #1C1E1B; --border: #D7D9D2;
+    --accent: #0E6F64; --accent-ink: #FFFFFF; --warn: #8A5F13;
+    --redact: #121312; --redact-stripe: #262722;
+  }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #15161a; --fg: #eaeaea; --card: #1e1f24; --border: #35363c; --accent: #60a5fa; }
+    :root {
+      --paper: #14161A; --ink: #E7E8E3; --border: #30332E;
+      --accent: #2BB3A1; --accent-ink: #0B1210; --warn: #D29A42;
+      --redact: #050605; --redact-stripe: #1A1B18;
+    }
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
-    display: flex; justify-content: center; padding: 16px;
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    display: flex; justify-content: center;
+    padding: 56px 20px 80px;
+    line-height: 1.55;
   }
-  main { max-width: 720px; width: 100%; padding-top: 48px; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  p.sub { color: #888; margin-top: 0; margin-bottom: 24px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-  input {
-    width: 100%; padding: 10px 12px; font-size: 1rem; border-radius: 8px;
-    border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+  main { max-width: 560px; width: 100%; }
+
+  .wordmark {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600;
+    font-size: 1.1rem; letter-spacing: -0.01em; margin: 0 0 14px;
   }
+  p.lede { margin: 0 0 28px; max-width: 46ch; color: var(--ink); opacity: 0.86; }
+
+  form { display: flex; gap: 8px; margin-bottom: 36px; }
+  input[type="text"] {
+    flex: 1; min-width: 0; padding: 11px 13px; font-size: 0.95rem;
+    font-family: "IBM Plex Mono", monospace;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--paper); color: var(--ink);
+  }
+  input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   button {
-    margin-top: 12px; padding: 10px 18px; font-size: 1rem; border-radius: 8px;
-    border: none; background: var(--accent); color: white; cursor: pointer;
+    padding: 11px 18px; font-size: 0.95rem; font-family: inherit; font-weight: 500;
+    border: none; border-radius: 4px; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
   }
-  button:disabled { opacity: 0.5; cursor: wait; }
-  #output {
-    margin-top: 16px; padding: 12px; border-radius: 8px; background: var(--bg);
-    border: 1px dashed var(--border); min-height: 1.4em; word-break: break-all;
-    font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem;
+  button:disabled { opacity: 0.45; cursor: progress; }
+  button:not(:disabled):hover { filter: brightness(1.08); }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  #status { font-size: 0.88rem; opacity: 0.7; min-height: 1.4em; margin-bottom: 4px; }
+  #status[data-tone="error"] { color: var(--warn); opacity: 1; }
+
+  .result-row { display: flex; gap: 14px; align-items: baseline; margin-bottom: 7px; }
+  .result-row .tag {
+    flex: 0 0 52px; font-family: "IBM Plex Mono", monospace; font-size: 0.78rem;
+    opacity: 0.55; padding-top: 2px;
   }
-  #status { font-size: 0.85rem; color: #888; margin-top: 10px; }
-  footer { margin-top: 24px; font-size: 0.8rem; color: #888; }
-  footer a { color: var(--accent); }
+  .result-row .value {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.92rem;
+    word-break: break-all; line-height: 1.5;
+  }
+  .result-row.note .value { font-family: inherit; opacity: 0.75; font-size: 0.9rem; }
+
+  mark.redacted {
+    background: repeating-linear-gradient(45deg, var(--redact), var(--redact) 3px, var(--redact-stripe) 3px, var(--redact-stripe) 6px);
+    color: transparent; border-radius: 2px; padding: 0 1px; cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+  mark.redacted:hover, mark.redacted:focus-visible {
+    color: var(--warn); background: none; outline: 1px dashed var(--warn);
+  }
+
+  .removed-list { font-size: 0.85rem; opacity: 0.65; margin-top: 10px; }
+  .removed-list b { font-weight: 500; opacity: 1; }
+
+  .example {
+    margin-top: 52px; padding-top: 28px; border-top: 1px solid var(--border);
+  }
+  .example h2 {
+    font-size: 0.78rem; font-weight: 500; font-family: "IBM Plex Mono", monospace;
+    margin: 0 0 16px; opacity: 0.6;
+  }
+
+  footer { margin-top: 56px; font-size: 0.85rem; opacity: 0.65; }
+  footer p { margin: 0 0 4px; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { opacity: 0.8; }
+
+  @media (prefers-reduced-motion: reduce) {
+    mark.redacted { transition: none; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>tagoff</h1>
-  <p class="sub">Strip tracking params and unwrap link-shim redirectors -- same Rust core as the CLI, compiled to WASM, running entirely in this tab.</p>
-  <div class="card">
-    <input id="url-input" type="text" placeholder="Paste a URL, e.g. one with ?utm_source=..." autofocus>
-    <button id="clean-button" disabled>Clean</button>
-    <div id="output"></div>
-    <div id="status">Loading WASM module...</div>
-  </div>
+  <p class="wordmark">tagoff</p>
+  <p class="lede">Removes tracking parameters from links. Runs entirely on your device, so nothing you paste here is sent anywhere.</p>
+
+  <form id="clean-form">
+    <input id="url-input" type="text" placeholder="Paste a link" autocomplete="off" autofocus>
+    <button id="clean-button" type="submit" disabled>Clean</button>
+  </form>
+
+  <div id="status">Loading…</div>
+  <div id="result" aria-live="polite"></div>
+
+  <section class="example">
+    <h2>Example</h2>
+    <div class="result-row">
+      <span class="tag">before</span>
+      <span class="value">https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.wsj.com%2Farticles%2Fsample<mark class="redacted" tabindex="0">%3Ffbclid%3DIwAR123abc</mark>&amp;h=AT1def</span>
+    </div>
+    <div class="result-row">
+      <span class="tag">after</span>
+      <span class="value">https://www.wsj.com/articles/sample</span>
+    </div>
+    <p class="removed-list">Unwrapped a Facebook share link, then removed <b>fbclid</b>.</p>
+  </section>
+
   <footer>
-    Zero network calls beyond this page load -- nothing you type here is sent anywhere.
-    Source, CLI, test suite, and the critique ledger this went through: see the repo this page is served from.
+    <p>Source on <a href="https://github.com/rickvalor/TAGOFF">GitHub</a>, including the Rust and Python CLIs this page shares its core with.</p>
+    <p>MIT licensed.</p>
   </footer>
 </main>
 <script src="demo.js"></script>

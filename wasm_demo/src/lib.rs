@@ -6,7 +6,7 @@
 //! `LISTS`), which is exactly right for a page running in one visitor's
 //! own browser tab.
 
-use tagoff::{clean_url, TrackerLists};
+use tagoff::{clean_url, json_escape, TrackerLists};
 use std::alloc::{alloc, dealloc, Layout};
 use std::sync::OnceLock;
 
@@ -52,7 +52,11 @@ pub unsafe extern "C" fn init_lists(
 /// Clean one URL. `url_ptr`/`url_len` point at the input (written by JS
 /// via `alloc_buffer`); `out_len_ptr` is a 4-byte buffer JS also
 /// allocates, which this writes the output length into. Returns a
-/// pointer to the cleaned UTF-8 bytes.
+/// pointer to a JSON-encoded UTF-8 result (same shape as the CLI's
+/// `--json` output: `original`/`cleaned`/`unwrapped_redirect`/
+/// `removed_params`), so the page can show what changed, not just the
+/// final link -- hand-built with `json_escape`, no serde, same reason
+/// this whole crate avoids `wasm-bindgen`.
 #[no_mangle]
 pub unsafe extern "C" fn clean(url_ptr: *const u8, url_len: usize, out_len_ptr: *mut usize) -> *mut u8 {
     let url = std::str::from_utf8(std::slice::from_raw_parts(url_ptr, url_len)).unwrap_or("");
@@ -64,7 +68,20 @@ pub unsafe extern "C" fn clean(url_ptr: *const u8, url_len: usize, out_len_ptr: 
         }
     };
     let result = clean_url(url, lists, 3);
-    let bytes = result.cleaned.into_bytes();
+    let removed = result
+        .removed_params
+        .iter()
+        .map(|p| format!("\"{}\"", json_escape(p)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let json = format!(
+        "{{\"original\":\"{}\",\"cleaned\":\"{}\",\"unwrapped_redirect\":{},\"removed_params\":[{}]}}",
+        json_escape(&result.original),
+        json_escape(&result.cleaned),
+        result.unwrapped_redirect,
+        removed
+    );
+    let bytes = json.into_bytes();
     *out_len_ptr = bytes.len();
     if bytes.is_empty() {
         return std::ptr::null_mut();

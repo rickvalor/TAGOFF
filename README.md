@@ -1,24 +1,21 @@
-# TAGOFF
+# tagoff
 
-[![CI](https://github.com/OWNER/TAGOFF/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-_(badge above will resolve once this is pushed to a real GitHub remote —
-see `.github/workflows/ci.yml` directly until then.)_
+[![CI](https://github.com/rickvalor/TAGOFF/actions/workflows/ci.yml/badge.svg)](https://github.com/rickvalor/TAGOFF/actions/workflows/ci.yml)
 
-A URL tracking-parameter stripper and link-shim unwrapper. Paste it a link
-full of `utm_*`/`fbclid`/`gclid`/etc. junk (or one that's been wrapped
-through Facebook's `l.php`, Reddit's `out.reddit.com`, Slack's
-`slack-redir.net`, or an Outlook Safe Link), get back the clean destination.
-See [`docs/EXAMPLES.md`](docs/EXAMPLES.md) for real before/after pairs,
-including an Amazon product link and a wrapped Facebook share.
+Removes tracking parameters from URLs and unwraps link-shim redirectors
+(Facebook's `l.php`, Reddit's `out.reddit.com`, Slack's `slack-redir.net`,
+Outlook Safe Links). Paste in a link full of `utm_source`, `fbclid`,
+`gclid`, and similar junk; get back the clean destination. Real
+before/after examples, including a wrapped Facebook share and an Amazon
+product link, are in [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
-Zero network calls, two independent implementations tested against one
-shared set of golden cases to guarantee they agree
-(see [`docs/CRITIQUE_LEDGER.md`](docs/CRITIQUE_LEDGER.md) for the 19-round
-hardening pass this went through — 10 real bugs found and fixed, not just
-a changelog). There's also a live, zero-network **browser demo** of the
-Rust core compiled to WASM — see `web_demo/` (open `index.html` via a
-local static server, e.g. `python -m http.server`, after running
-`web_demo/build.sh`).
+Two independent implementations, Rust and Python, tested against one
+shared set of cases to keep them in agreement. Zero network calls: both
+only ever read and rewrite the URL string itself.
+
+A live, in-browser version runs entirely on-device via WebAssembly. Build
+it once (`web_demo/build.sh`), then serve `web_demo/` with any static
+file server (e.g. `python -m http.server`) and open it locally.
 
 Two parallel implementations, kept in lockstep against one shared data
 source:
@@ -30,21 +27,21 @@ python/         pure-Python package (tagoff) + CLI + extra tools
                 (bookmarks cleaner, Markdown link cleaner, pre-commit hook)
 wasm_demo/      raw-C-ABI WASM wrapper around rust_core (no wasm-bindgen,
                 stays dependency-free); verify.mjs proves it end-to-end via Node
-web_demo/       static, client-side browser demo -- build.sh stages the wasm
+web_demo/       static, client-side browser demo; build.sh stages the wasm
                 binary + data files, then it's just index.html + demo.js
 data/           the one shared source of truth both Rust/Python sides load:
-                  tracking_params.txt   -- tracking query-param names/prefixes
-                  tracking_domains.txt  -- known link-shim redirector hosts
-test_fixtures/  golden_cases.txt -- shared test vectors both languages' real
+                  tracking_params.txt   tracking query-param names/prefixes
+                  tracking_domains.txt  known link-shim redirector hosts
+test_fixtures/  golden_cases.txt, shared test vectors both languages' real
                 test suites (rust_core/tests/, python/tests/) load; not a
                 suite of its own
 completions/    bash/zsh/PowerShell shell completions
-packaging/      Homebrew/Scoop/winget manifest TEMPLATES -- not yet
-                functional, see packaging/README.md for why
-scripts/        bench.py -- cross-language benchmark
+packaging/      Homebrew/Scoop/winget manifest templates, not yet
+                functional; see packaging/README.md for why
+scripts/        bench.py, the cross-language benchmark
 docs/           CRITIQUE_LEDGER.md, EXAMPLES.md, BENCHMARKS.md
 action.yml, .pre-commit-hooks.yaml, pyproject.toml/setup.py (root)
-                -- let other repos consume this one as a CI Action or a
+                let other repos consume this one as a CI Action or a
                 pre-commit hook; see the "Features" section below
 ```
 
@@ -100,9 +97,9 @@ tagoff-watch
 ```
 
 `-e` is for development convenience (edits to `data/*.txt` apply without
-reinstalling) -- a real, non-editable `pip install .`/wheel is also fully
-self-contained now (`setup.py` copies the lists in at build time; see
-round 16 of the critique ledger). Extra tools, same install:
+reinstalling). A real, non-editable `pip install .`/wheel is also fully
+self-contained (`setup.py` copies the lists in at build time). Extra
+tools, same install:
 
 ```powershell
 tagoff-bookmarks path/to/Bookmarks          # Chrome/Edge JSON, or a Netscape Bookmarks.html export
@@ -135,11 +132,11 @@ they still agree.
 
 ## Features
 
-Both `tagoff` (Python) and `tagoff` (Rust) share the same flag
-surface: `-v/--verbose`, `--json`, `--diff`, `--stats`, `--check` (exit 1
-if anything had tracking — a CI/pre-commit gate), `--list-params`/
-`--list-domains` (audit the rules before trusting them), `--input FILE`/
-`--output FILE` (atomic write). A user config overlay
+The Rust and Python CLIs share the same flag surface: `-v/--verbose`,
+`--json`, `--diff`, `--stats`, `--check` (exit 1 if anything had
+tracking, for a CI/pre-commit gate), `--list-params`/`--list-domains`
+(audit the rules before trusting them), `--input FILE`/`--output FILE`
+(atomic write). A user config overlay
 (`extra_params.txt`/`extra_domains.txt` in `%APPDATA%\tagoff` or
 `~/.config/tagoff`, overridable via `TAGOFF_CONFIG_DIR`) lets you
 add your own rules without touching the shipped lists. Shell completions

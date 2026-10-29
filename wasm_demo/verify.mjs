@@ -36,11 +36,11 @@ function cleanUrl(url) {
     const outLenPtr = alloc_buffer(4);
     const resultPtr = clean(urlPtr, urlLen, outLenPtr);
     const outLen = new Uint32Array(memory.buffer, outLenPtr, 1)[0];
-    const result = readString(resultPtr, outLen);
+    const raw = readString(resultPtr, outLen);
     free_buffer(urlPtr, urlLen);
     free_buffer(outLenPtr, 4);
     if (resultPtr !== 0) free_buffer(resultPtr, outLen);
-    return result;
+    return JSON.parse(raw).cleaned;
 }
 
 const cases = [
